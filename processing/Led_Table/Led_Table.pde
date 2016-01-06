@@ -51,7 +51,10 @@ void setup()
   float mmWidthTable = 609.6;
   float mmLengthTable = 2438.4;
   
-  size(floor(mmLengthTable/mmPerPixel), floor(mmWidthTable/mmPerPixel), P3D);
+  
+  size(200, 200, P3D);
+  surface.setResizable(true);
+  surface.setSize(floor(mmLengthTable/mmPerPixel), floor(mmWidthTable/mmPerPixel)); 
   
   modes = new Modes(this, drawFrameRate, mmPerPixel);
   
@@ -533,4 +536,3 @@ void fftUpdate()
   }
   
 }
-
