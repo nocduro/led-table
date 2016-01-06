@@ -152,7 +152,7 @@ public class Modes
     fill(secondaryColour);
     for (int i = 0; i < 20; i++)
     {
-      if (irData[i]){
+      if (!irData[i]){
         ellipse(xPos[i], yPos[i], diameter, diameter);
       }
     }

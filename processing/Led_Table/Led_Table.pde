@@ -25,7 +25,7 @@ int brightness = 100;
 boolean calibrating = false;
 boolean activeMode = false;
 String statusMessage = "";
-byte mode = 4;
+byte mode = 3;
 /*
 0 => off
 1 => test mode / startup animation
@@ -45,6 +45,7 @@ FloatList findMax = new FloatList();
 
 void setup()
 {
+  println("Starting setup.");
   // Setup mm to pixel multiplier
   float mmPerPixel = 1.5;
   float mmWidthTable = 609.6;
@@ -80,19 +81,20 @@ void setup()
   tcpServer = new Server(this, 5204);
   try
   {
+    print("Trying to connect to serial server.....");
     serialClient = new Client(this, tableIP, 12500);
-    println("Connected to serial server");
+    println("CONNECTED");
   }
   catch(Exception e) {
     statusMessage += "Unable to connect to serial server"; 
     println("Can't connect to serial server");
   }
-  println("TCPServer started");
-  
+
  
   // Connect to the local instance of fcserver. You can change this line to connect to another computer's fcserver
   try
   {
+    print("Connecting to FadeCandy Server.....");
     opc = new OPC(this, tableIP, 7890);
     
     //void ledGridRotated(int index, int stripLength, int numStrips, float x, float y, float ledSpacing, float stripSpacing, float angle, boolean zigzag)
@@ -136,6 +138,7 @@ void setup()
   println("Color correction: " + opc.colorCorrection);
   
   fftUpdate();
+  println("SETUP COMPLETE.");
 }
 
 
@@ -232,7 +235,8 @@ void serialMessage(String serialData)
   } else if (data[1].equals("INFO")){
    dataType = 4; 
   } else if (data[1].equals("BRIGHTNESS")){
-    changeBrightness(int(data[2].trim()));
+    //debug testing
+    //changeBrightness(int(data[2].trim()));
   }
 
   switch(dataType)
@@ -286,8 +290,10 @@ void receiveMessage(String message)
   
   
   if (command.equals("BRIGHTNESS") && data.length == 2){
+   
    changeBrightness(int(trim(data[1])) );
    sendMessage("You set the brightness to " + brightness);
+   
   } else if (command.equals("SERIAL")){
     serialMessage(message);    
   } else if (command.equals("MODE") && data.length > 1){
