@@ -1,6 +1,9 @@
 ##Run an exported Processing 3 sketch on a headless Raspberry Pi
 
-Follow directions from processing to run without a display here: https://github.com/processing/processing/wiki/Running-without-a-Display
+Follow directions from processing to run without a display here:
+
+ https://github.com/processing/processing/wiki/Running-without-a-Display
+ 
 Here are the important things summarized:
 
 `sudo apt-get install xvfb libxrender1 libxtst6 libxi6`
@@ -10,8 +13,10 @@ Here are the important things summarized:
 `export DISPLAY=":1"`
 
 We'll use openjdk 8 to run the file exported by Processing 3.0.1
+
 Make sure we are using the correct version by running:
-`sudo update-alternatives --config java
+
+`sudo update-alternatives --config java`
 
 Export the Application from Processing if not already done so:
 `File -> Export Application`
