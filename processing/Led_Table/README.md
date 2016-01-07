@@ -12,7 +12,7 @@ Here are the important things summarized:
 
 `export DISPLAY=":1"`
 
-We'll use openjdk 8 to run the file exported by Processing 3.0.1
+We'll use java jdk-8 on the Pi to run the sketch
 
 Make sure we are using the correct version by running:
 
