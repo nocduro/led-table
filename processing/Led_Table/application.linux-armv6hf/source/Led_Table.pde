@@ -26,7 +26,7 @@ int brightness = 100;
 boolean calibrating = false;
 boolean activeMode = false;
 String statusMessage = "";
-byte mode = 3;
+byte mode = 1;
 /*
 0 => off
 1 => test mode / startup animation
@@ -48,24 +48,28 @@ void setup()
 {
   println("Starting setup.");
   // Setup mm to pixel multiplier
-  float mmPerPixel = 1.5; // changes how large the processing window will be
+  float mmPerPixel = 3; // changes how large the processing window will be
   float mmWidthTable = 609.6; // physical width of table
   float mmLengthTable = 2438.4; // physical length of table
   
   
-  size(200, 200, P3D);
+  size(812, 203, P3D);
+  println("Finished size()");
   // Throws an error when this is enabled
   //surface.setResizable(true);
-  surface.setSize(floor(mmLengthTable/mmPerPixel), floor(mmWidthTable/mmPerPixel)); 
+  //surface.setSize(floor(mmLengthTable/mmPerPixel), floor(mmWidthTable/mmPerPixel)); 
+  println("Finished resizing...");
   
   modes = new Modes(this, drawFrameRate, mmPerPixel);
   
   // Audio setup
+  /*
   minim = new Minim(this);
   sound = minim.getLineIn(Minim.STEREO, 2048);
   fft = new FFT(sound.bufferSize(), sound.sampleRate());
   logMultiplier = fft.specSize() / (64*(log(64) - 1));
-
+  
+  */
   
   /* DISABLE SERIAL FOR NOW
   // Setup serial connection
@@ -142,7 +146,7 @@ void setup()
   println("Frame rate set to: " + drawFrameRate);
   println("Color correction: " + opc.colorCorrection);
   
-  fftUpdate();
+  //fftUpdate();
   println("SETUP COMPLETE.");
 }
 
