@@ -15,7 +15,7 @@ PImage dot;
 Server tcpServer;
 Client serialClient;
 OPC opc;
-Modes modes;
+Mode mode;
 
 int drawFrameRate = 60;
 
@@ -26,7 +26,7 @@ int brightness = 100;
 boolean calibrating = false;
 boolean activeMode = false;
 String statusMessage = "";
-byte mode = 1;
+byte currentMode = 1;
 /*
 0 => off
 1 => test mode / startup animation
@@ -52,7 +52,7 @@ void setup()
   float mmWidthTable = 609.6; // physical width of table
   float mmLengthTable = 2438.4; // physical length of table
   
-  
+  LEDTable.initialize(mmWidthTable, mmLengthTable, drawFrameRate, mmPerPixel);
   size(812, 203, P3D);
   println("Finished size()");
   // Throws an error when this is enabled
@@ -60,7 +60,7 @@ void setup()
   //surface.setSize(floor(mmLengthTable/mmPerPixel), floor(mmWidthTable/mmPerPixel)); 
   println("Finished resizing...");
   
-  modes = new Modes(this, drawFrameRate, mmPerPixel);
+  
   
   // Audio setup
   /*
@@ -146,6 +146,7 @@ void setup()
   println("Frame rate set to: " + drawFrameRate);
   println("Color correction: " + opc.colorCorrection);
   
+  mode = new Rainbow();
   //fftUpdate();
   println("SETUP COMPLETE.");
 }
@@ -157,59 +158,59 @@ void draw()
   checkForCommands();
 
   // mode selection
-  switch (mode)
+  switch (currentMode)
   {
     case 0:
-      modes.off();
+      mode = new SolidColour("FF000000"); // turns the screen to black
       break;
     case 1:
-      modes.rotateCube(primaryColour, secondaryColour);
+      mode = new RotatingCube();
       //modes.dot();
       break;
     case 2:
-      modes.solidColour(primaryColour, secondaryColour);
+      mode = new SolidColour();
       break;
     case 3:
-      fftUpdate();
-      modes.soundTest(primaryColour, secondaryColour);
       break;
     case 4:
-      modes.bubbles(primaryColour);
       break;
       
       
     default:
-      modes.off();
+      mode = new SolidColour("FF000000");
       break;   
       
   } // end of switch
+  
+  mode.update();
+  mode.display();
+  
 }
 
 
 void modeChange(String m)
 {
   if (m.equals("TOGGLE")){
-    if (mode == 4){
-      mode = 0;
+    if (currentMode == 4){
+      currentMode = 0;
     } else {
-      mode++;
+      currentMode++;
     }
   } else if (m.equals("OFF")){
-    mode = 0;
+    currentMode = 0;
   } else if (m.equals("ROTATECUBE")){
-    mode = 1;
+    currentMode = 1;
   } else if (m.equals("SOLIDCOLOUR")){
-    mode = 2;
+    currentMode = 2;
   } else if (m.equals("SOUNDTEST")){
-    mode = 3;
+    currentMode = 3;
   } else if (m.equals("BUBBLES")){
-    mode = 4;
+    currentMode = 4;
   }
     
    
   println("Mode changed to: " + m);
   //sendMessage("Mode changed to " +m);
-  modes.modeCounter = 0;
 }
 
 
@@ -252,9 +253,9 @@ void serialMessage(String serialData)
   {
     case 1:
       if (data[3].trim().equals("ON")){
-        modes.irData[int(data[2])] = true;
+        LEDTable.irData[int(data[2])] = true;
       } else if (data[3].trim().equals("OFF")){
-        modes.irData[int(data[2])] = false;
+        LEDTable.irData[int(data[2])] = false;
       }    
       break;
     case 2:
@@ -536,7 +537,7 @@ void fftUpdate()
     
     float testVal = average/frequenciesAveraged;
     
-    modes.currentFFT[i-1] = val;
+    //modes.currentFFT[i-1] = val;
     freqCount += numberOfFreqToAvg;
     findMax.clear();     
   }
