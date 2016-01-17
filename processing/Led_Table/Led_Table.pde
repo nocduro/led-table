@@ -39,9 +39,7 @@ color secondaryColour = #FF0000;
 // fft
 Minim minim;
 AudioInput sound;
-FFT fft;
-float logMultiplier;
-FloatList findMax = new FloatList();
+AudioPlayer song;
 
 
 void setup()
@@ -63,14 +61,9 @@ void setup()
   
   
   // Audio setup
-  /*
   minim = new Minim(this);
   sound = minim.getLineIn(Minim.STEREO, 2048);
-  fft = new FFT(sound.bufferSize(), sound.sampleRate());
-  logMultiplier = fft.specSize() / (64*(log(64) - 1));
-  
-  */
-  
+  song = minim.loadFile("HoldOn.mp3", 2048);
   /* DISABLE SERIAL FOR NOW
   // Setup serial connection
   println(myPort.list());
@@ -146,7 +139,7 @@ void setup()
   println("Frame rate set to: " + drawFrameRate);
   println("Color correction: " + opc.colorCorrection);
   
-  mode = new Rainbow();
+  mode = new SoundBall(song);
   //fftUpdate();
   println("SETUP COMPLETE.");
 }
@@ -156,7 +149,7 @@ void draw()
 {
   // Animation testing
   checkForCommands();
-
+  /*
   // mode selection
   switch (currentMode)
   {
@@ -181,7 +174,7 @@ void draw()
       break;   
       
   } // end of switch
-  
+  */
   mode.update();
   mode.display();
   
@@ -489,57 +482,6 @@ void buttonHeld(int b)
       break;
     default:
       println("Unrecognized button press");
-  }
-  
-}
-
-
-
-void fftUpdate()
-{
-  fft.forward(sound.mix);
-  int freqCount = 0; // what frequency are we on?
-  int startingFreq = 20; // frequency in Hz to start at
-  
-  for (int i = 1; i <= 64; i++)
-  {
-    //modes.prevFFT[i-1] = modes.currentFFT[i-1];
-    float average = 0;
-    float maxVal = 0;
-    int frequenciesAveraged = 0;
-    int numberOfFreqToAvg = round(logMultiplier*log(i)); // determines how many frequencies in each of the 64 bars with more freq included for higher frequencies
-    
-    for (int j = startingFreq + freqCount; j < numberOfFreqToAvg + freqCount + startingFreq; j++) // add all the frequencies for a bar to a floatList which lets us easily find the max (highest amplitude of those frequencies)
-    {
-      findMax.append(fft.getFreq(j));
-      
-    }
-    if (findMax.size() > 0)
-    {
-      maxVal = findMax.max();
-      for (int k = 0; k < findMax.size(); k++)
-      {
-        if (findMax.get(k) > 0.6 * maxVal)// this only averages the values that are at least XX% of the max value which makes the higher frequenceis more responsive
-        {
-          average += findMax.get(k);
-          frequenciesAveraged++;
-        }
-      }
-    }
-    
-    float val = norm( (average / frequenciesAveraged), 0, 125); // normalize to betweeen 0 and 1 and make sure it doesn't exceed those values
-    if (val > 1){
-      val = 1;
-    }
-    if (val < 0){
-      val = 0;
-    }
-    
-    float testVal = average/frequenciesAveraged;
-    
-    //modes.currentFFT[i-1] = val;
-    freqCount += numberOfFreqToAvg;
-    findMax.clear();     
   }
   
 }

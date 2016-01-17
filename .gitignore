@@ -43,7 +43,9 @@ Temporary Items
 .apdisk
 
 # Don't include exported applications
-processing/Led_Table/application.*
+processing/Led_Table/application.linux32
+processing/Led_Table/application.linux64
+processing/Led_Table/application.linux-armv6hf
 
 # Don't include .mp3
-.mp3
+*.mp3

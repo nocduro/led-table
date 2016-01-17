@@ -15,7 +15,7 @@ PImage dot;
 Server tcpServer;
 Client serialClient;
 OPC opc;
-Modes modes;
+Mode mode;
 
 int drawFrameRate = 60;
 
@@ -26,7 +26,7 @@ int brightness = 100;
 boolean calibrating = false;
 boolean activeMode = false;
 String statusMessage = "";
-byte mode = 1;
+byte currentMode = 1;
 /*
 0 => off
 1 => test mode / startup animation
@@ -39,9 +39,7 @@ color secondaryColour = #FF0000;
 // fft
 Minim minim;
 AudioInput sound;
-FFT fft;
-float logMultiplier;
-FloatList findMax = new FloatList();
+AudioPlayer song;
 
 
 void setup()
@@ -52,7 +50,7 @@ void setup()
   float mmWidthTable = 609.6; // physical width of table
   float mmLengthTable = 2438.4; // physical length of table
   
-  
+  LEDTable.initialize(mmWidthTable, mmLengthTable, drawFrameRate, mmPerPixel);
   size(812, 203, P3D);
   println("Finished size()");
   // Throws an error when this is enabled
@@ -60,17 +58,12 @@ void setup()
   //surface.setSize(floor(mmLengthTable/mmPerPixel), floor(mmWidthTable/mmPerPixel)); 
   println("Finished resizing...");
   
-  modes = new Modes(this, drawFrameRate, mmPerPixel);
+  
   
   // Audio setup
-  /*
   minim = new Minim(this);
   sound = minim.getLineIn(Minim.STEREO, 2048);
-  fft = new FFT(sound.bufferSize(), sound.sampleRate());
-  logMultiplier = fft.specSize() / (64*(log(64) - 1));
-  
-  */
-  
+  song = minim.loadFile("HoldOn.mp3", 2048);
   /* DISABLE SERIAL FOR NOW
   // Setup serial connection
   println(myPort.list());
@@ -146,6 +139,7 @@ void setup()
   println("Frame rate set to: " + drawFrameRate);
   println("Color correction: " + opc.colorCorrection);
   
+  mode = new SoundBall(song);
   //fftUpdate();
   println("SETUP COMPLETE.");
 }
@@ -155,61 +149,61 @@ void draw()
 {
   // Animation testing
   checkForCommands();
-
+  /*
   // mode selection
-  switch (mode)
+  switch (currentMode)
   {
     case 0:
-      modes.off();
+      mode = new SolidColour("FF000000"); // turns the screen to black
       break;
     case 1:
-      modes.rotateCube(primaryColour, secondaryColour);
+      mode = new RotatingCube();
       //modes.dot();
       break;
     case 2:
-      modes.solidColour(primaryColour, secondaryColour);
+      mode = new SolidColour();
       break;
     case 3:
-      fftUpdate();
-      modes.soundTest(primaryColour, secondaryColour);
       break;
     case 4:
-      modes.bubbles(primaryColour);
       break;
       
       
     default:
-      modes.off();
+      mode = new SolidColour("FF000000");
       break;   
       
   } // end of switch
+  */
+  mode.update();
+  mode.display();
+  
 }
 
 
 void modeChange(String m)
 {
   if (m.equals("TOGGLE")){
-    if (mode == 4){
-      mode = 0;
+    if (currentMode == 4){
+      currentMode = 0;
     } else {
-      mode++;
+      currentMode++;
     }
   } else if (m.equals("OFF")){
-    mode = 0;
+    currentMode = 0;
   } else if (m.equals("ROTATECUBE")){
-    mode = 1;
+    currentMode = 1;
   } else if (m.equals("SOLIDCOLOUR")){
-    mode = 2;
+    currentMode = 2;
   } else if (m.equals("SOUNDTEST")){
-    mode = 3;
+    currentMode = 3;
   } else if (m.equals("BUBBLES")){
-    mode = 4;
+    currentMode = 4;
   }
     
    
   println("Mode changed to: " + m);
   //sendMessage("Mode changed to " +m);
-  modes.modeCounter = 0;
 }
 
 
@@ -252,9 +246,9 @@ void serialMessage(String serialData)
   {
     case 1:
       if (data[3].trim().equals("ON")){
-        modes.irData[int(data[2])] = true;
+        LEDTable.irData[int(data[2])] = true;
       } else if (data[3].trim().equals("OFF")){
-        modes.irData[int(data[2])] = false;
+        LEDTable.irData[int(data[2])] = false;
       }    
       break;
     case 2:
@@ -488,57 +482,6 @@ void buttonHeld(int b)
       break;
     default:
       println("Unrecognized button press");
-  }
-  
-}
-
-
-
-void fftUpdate()
-{
-  fft.forward(sound.mix);
-  int freqCount = 0; // what frequency are we on?
-  int startingFreq = 20; // frequency in Hz to start at
-  
-  for (int i = 1; i <= 64; i++)
-  {
-    //modes.prevFFT[i-1] = modes.currentFFT[i-1];
-    float average = 0;
-    float maxVal = 0;
-    int frequenciesAveraged = 0;
-    int numberOfFreqToAvg = round(logMultiplier*log(i)); // determines how many frequencies in each of the 64 bars with more freq included for higher frequencies
-    
-    for (int j = startingFreq + freqCount; j < numberOfFreqToAvg + freqCount + startingFreq; j++) // add all the frequencies for a bar to a floatList which lets us easily find the max (highest amplitude of those frequencies)
-    {
-      findMax.append(fft.getFreq(j));
-      
-    }
-    if (findMax.size() > 0)
-    {
-      maxVal = findMax.max();
-      for (int k = 0; k < findMax.size(); k++)
-      {
-        if (findMax.get(k) > 0.6 * maxVal)// this only averages the values that are at least XX% of the max value which makes the higher frequenceis more responsive
-        {
-          average += findMax.get(k);
-          frequenciesAveraged++;
-        }
-      }
-    }
-    
-    float val = norm( (average / frequenciesAveraged), 0, 125); // normalize to betweeen 0 and 1 and make sure it doesn't exceed those values
-    if (val > 1){
-      val = 1;
-    }
-    if (val < 0){
-      val = 0;
-    }
-    
-    float testVal = average/frequenciesAveraged;
-    
-    modes.currentFFT[i-1] = val;
-    freqCount += numberOfFreqToAvg;
-    findMax.clear();     
   }
   
 }

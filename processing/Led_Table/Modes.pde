@@ -1,3 +1,6 @@
+import ddf.minim.*;
+import ddf.minim.analysis.*;
+
 public interface Mode 
 {
   public int drawFrameRate = 60;
@@ -191,4 +194,74 @@ class RotatingCube implements Mode
     
   }
   
+}
+
+
+class SoundBall implements Mode {
+  AudioPlayer sound;
+  FFT fft;
+  BeatDetect beat;
+  
+  float alpha,a;
+  int numBars;
+  float[] prevBars, currentBars;
+  
+  SoundBall(AudioPlayer s) {
+    sound = s;
+    sound.loop();
+    fft = new FFT(s.bufferSize(), s.sampleRate());
+    beat = new BeatDetect();
+    alpha = 180;
+    numBars = 3;
+    prevBars = new float[this.numBars];
+    currentBars = new float[this.numBars];
+  }
+  
+  void update() {
+    fft.linAverages(numBars);
+    fft.forward(sound.left);
+    for (int i = 0; i < numBars; i++) {
+      float val = fft.getAvg(i) * 15 * (i*i+1); 
+      if (val > prevBars[i] ) {
+        currentBars[i] = prevBars[i] + ( (val- prevBars[i]) * 0.08 ); // fade up to new value
+      } else {
+        currentBars[i] = prevBars[i] * 0.95;  // fade down to old value
+      }
+      this.prevBars[i] = currentBars[i];
+      
+    }
+    
+    // beat detection on sound level
+    beat.detect(sound.left);
+    a = map(alpha, 25, 150, 180, 255); 
+    if ( beat.isOnset() ) alpha = 150; 
+    
+    alpha *= 0.97;
+    if ( alpha < 25 ) alpha = 25;
+    
+  }
+   
+  
+  
+  void display() {
+    background(0);
+    fill(255, 66, 00, a);
+    ellipse(width/2, height/2, currentBars[2]+currentBars[0]+currentBars[1], currentBars[2] + currentBars[0] + currentBars[1]);
+    
+    fill(255);
+    ellipse(width/2, height/2, currentBars[0]+currentBars[1], currentBars[0]+currentBars[1]);
+    fill(90, 0, 120, a);
+    ellipse(width/2, height/2, currentBars[1]+currentBars[0], currentBars[1]+currentBars[0]);
+    
+    fill(255);
+    ellipse(width/2, height/2, currentBars[0], currentBars[0]);
+    fill(60, 255, 0, a);
+    ellipse(width/2, height/2, currentBars[0], currentBars[0]);
+    
+  }
+   
+   
+   
+  void setAttribute(String atr, int val) {
+  }
 }
