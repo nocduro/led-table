@@ -41,3 +41,9 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Don't include exported applications
+processing/Led_Table/application.*
+
+# Don't include .mp3
+.mp3
