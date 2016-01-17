@@ -1,20 +1,14 @@
-import processing.serial.*;
 import processing.net.*;
 import ddf.minim.analysis.*;
 import ddf.minim.*;
 
 
-//String tableIP = "192.168.0.166";
 String tableIP = "127.0.0.1";
 
-//TEMP
-PImage dot;
 
-
-//Serial myPort;
-Server tcpServer;
-Client serialClient;
-OPC opc;
+Server tcpServer; // used to send commands to the sketch remotely
+Client serialClient; //used for tcp connection to Arduino serial output
+OPC opc; // open pixel control
 Mode mode;
 
 int drawFrameRate = 60;
@@ -23,8 +17,6 @@ int drawFrameRate = 60;
 int[] analogData = new int[4];
 
 int brightness = 100;
-boolean calibrating = false;
-boolean activeMode = false;
 String statusMessage = "";
 byte currentMode = 1;
 /*
@@ -36,66 +28,63 @@ byte currentMode = 1;
 color primaryColour = #000099;
 color secondaryColour = #FF0000;
 
-// fft
+// Audio setup
 Minim minim;
-AudioInput sound;
-AudioPlayer song;
+AudioInput sound; // microphone
+AudioPlayer song; // plays locally stored songs
 
 
-void setup()
-{
+void setup() {
   println("Starting setup.");
   // Setup mm to pixel multiplier
   float mmPerPixel = 3; // changes how large the processing window will be
   float mmWidthTable = 609.6; // physical width of table
   float mmLengthTable = 2438.4; // physical length of table
   
+  // initialize the table with constants used by other classes
   LEDTable.initialize(mmWidthTable, mmLengthTable, drawFrameRate, mmPerPixel);
   size(812, 203, P3D);
-  println("Finished size()");
-  // Throws an error when this is enabled
+  
+  // For some reason this code doesn't work on the Pi:
   //surface.setResizable(true);
   //surface.setSize(floor(mmLengthTable/mmPerPixel), floor(mmWidthTable/mmPerPixel)); 
-  println("Finished resizing...");
-  
   
   
   // Audio setup
   minim = new Minim(this);
-  sound = minim.getLineIn(Minim.STEREO, 2048);
-  song = minim.loadFile("HoldOn.mp3", 2048);
-  /* DISABLE SERIAL FOR NOW
-  // Setup serial connection
-  println(myPort.list());
   
-  try
-  {
-    myPort = new Serial(this, Serial.list()[0], 9600);
-    myPort.bufferUntil('\n');
-    println("Serial connection established on " + Serial.list()[0]);
+  // connect to lineIn
+  try {
+    sound = minim.getLineIn(Minim.STEREO, 2048);
+  } catch(Exception e) {
+      statusMessage+= "Minim error: Unable to connect to LineIn";
+      println("Minim error: " + e.getMessage());
   }
-  catch(Exception e){
-    statusMessage += "Unable to bind serial port";     
+  
+  // load a local file for testing purposes
+  try {
+    song = minim.loadFile("BadBlood.mp3", 2048);
+  } catch (Exception e) {
+      statusMessage+= "Minim error: Unable to load song";
+      println("Minim error: " + e.getMessage());
   }
-    
-  */
-  // setup server
+  
+  /// NETWORK SETUP
+  
+  // setup remote control server
   tcpServer = new Server(this, 5204);
-  try
-  {
+  try {
     print("Trying to connect to serial server.....");
     serialClient = new Client(this, tableIP, 12500);
     println("CONNECTED");
-  }
-  catch(Exception e) {
-    statusMessage += "Unable to connect to serial server"; 
-    println("Can't connect to serial server");
+  } catch (Exception e) {
+      statusMessage += "Unable to connect to serial server"; 
+      println("Unable to connect to Serial server: " + e.getMessage());
   }
 
  
   // Connect to the local instance of fcserver. You can change this line to connect to another computer's fcserver
-  try
-  {
+  try {
     print("Connecting to FadeCandy Server.....");
     opc = new OPC(this, tableIP, 7890);
     
@@ -130,74 +119,49 @@ void setup()
     
     
     opc.connect();
+  } catch(Exception e) {
+      statusMessage += "Unable to connect to OPC server"; 
   }
-  catch(Exception e){
-    statusMessage += "Unable to connect to OPC server"; 
-  }
-
+  
+  
+  /// DRAW SETUP
+  
   frameRate(drawFrameRate);
+  changeBrightness(brightness);
   println("Frame rate set to: " + drawFrameRate);
   println("Color correction: " + opc.colorCorrection);
   
+  // set the startup mode
   mode = new SoundBall(song);
-  //fftUpdate();
+
   println("SETUP COMPLETE.");
 }
 
 
-void draw()
-{
-  // Animation testing
+void draw() {
   checkForCommands();
-  /*
-  // mode selection
-  switch (currentMode)
-  {
-    case 0:
-      mode = new SolidColour("FF000000"); // turns the screen to black
-      break;
-    case 1:
-      mode = new RotatingCube();
-      //modes.dot();
-      break;
-    case 2:
-      mode = new SolidColour();
-      break;
-    case 3:
-      break;
-    case 4:
-      break;
-      
-      
-    default:
-      mode = new SolidColour("FF000000");
-      break;   
-      
-  } // end of switch
-  */
+
   mode.update();
   mode.display();
-  
 }
 
 
-void modeChange(String m)
-{
+void modeChange(String m) {
   if (m.equals("TOGGLE")){
     if (currentMode == 4){
       currentMode = 0;
     } else {
       currentMode++;
     }
-  } else if (m.equals("OFF")){
+  } else if (m.equals("OFF")) {
     currentMode = 0;
-  } else if (m.equals("ROTATECUBE")){
+  } else if (m.equals("ROTATECUBE")) {
     currentMode = 1;
-  } else if (m.equals("SOLIDCOLOUR")){
+  } else if (m.equals("SOLIDCOLOUR")) {
     currentMode = 2;
-  } else if (m.equals("SOUNDTEST")){
+  } else if (m.equals("SOUNDTEST")) {
     currentMode = 3;
-  } else if (m.equals("BUBBLES")){
+  } else if (m.equals("BUBBLES")) {
     currentMode = 4;
   }
     
@@ -207,15 +171,6 @@ void modeChange(String m)
 }
 
 
-
-
-void serialEvent(Serial p)
-{
-  String serialInputData = p.readString();
-  //println(serialInputData);
-  
-  
-} // end serial event
 
 
 void serialMessage(String serialData)
@@ -229,15 +184,15 @@ void serialMessage(String serialData)
   // can't figure out how to use enums, so convert to int for the switch
   // try to fix this in the future
   
-  if (data[1].equals("IR")){
+  if (data[1].equals("IR")) {
    dataType = 1; 
-  } else if (data[1].equals("ANALOG")){
+  } else if (data[1].equals("ANALOG")) {
    dataType = 2; 
-  } else if (data[1].equals("BUTTON")){
+  } else if (data[1].equals("BUTTON")) {
    dataType = 3; 
-  } else if (data[1].equals("INFO")){
+  } else if (data[1].equals("INFO")) {
    dataType = 4; 
-  } else if (data[1].equals("BRIGHTNESS")){
+  } else if (data[1].equals("BRIGHTNESS")) {
     //debug testing
     //changeBrightness(int(data[2].trim()));
   }
@@ -245,9 +200,9 @@ void serialMessage(String serialData)
   switch(dataType)
   {
     case 1:
-      if (data[3].trim().equals("ON")){
+      if (data[3].trim().equals("ON")) {
         LEDTable.irData[int(data[2])] = true;
-      } else if (data[3].trim().equals("OFF")){
+      } else if (data[3].trim().equals("OFF")) {
         LEDTable.irData[int(data[2])] = false;
       }    
       break;
@@ -255,9 +210,9 @@ void serialMessage(String serialData)
       analogData[int(data[2])] = int(data[3]);
       break;
     case 3:
-      if (data[3].trim().equals("PRESSED")){
+      if (data[3].trim().equals("PRESSED")) {
         buttonPressed(int(data[2]));
-      } else if (data[3].trim().equals("HELD")){
+      } else if (data[3].trim().equals("HELD")) {
         buttonHeld(int(data[2]));
       } 
       break;
@@ -292,29 +247,24 @@ void receiveMessage(String message)
   String command = data[0].trim().toUpperCase();
   
   
-  if (command.equals("BRIGHTNESS") && data.length == 2){
+  if (command.equals("BRIGHTNESS") && data.length == 2) {
    
-   changeBrightness(int(trim(data[1])) );
+   changeBrightness( int( trim(data[1]) ) );
    sendMessage("You set the brightness to " + brightness);
    
-  } else if (command.equals("SERIAL")){
+  } else if ( command.equals("SERIAL") ) {
     serialMessage(message);    
-  } else if (command.equals("MODE") && data.length > 1){
+  } else if (command.equals("MODE") && data.length > 1) {
     modeChange(data[1].trim().toUpperCase());
-  } else if (message.trim().equals("firstConnect")){
+  } else if (message.trim().equals("firstConnect")) {
     if (statusMessage.equals("")){
       statusMessage = "No startup errors; "; 
     }
     statusMessage += "brightness: " + brightness + "; mode ";
     sendMessage(statusMessage);
-  } else if (command.equals("SHUTDOWN") && data.length == 1){
+  } else if (command.equals("SHUTDOWN") && data.length == 1) {
     // shutdown the pi gracefully somehow
-    
-  } else if (command.equals("CALIBRATESENSORS") && data.length == 1){
-    calibrateSensors(); 
-  } else if (command.equals("CALIBRATION") && data[1].trim().toUpperCase().equals("COMPLETE")){
-    calibrating = false; 
-  } else if (command.equals("COLOUR") || command.equals("COLOR")){
+  } else if (command.equals("COLOUR") || command.equals("COLOR")) {
     changeColour(data[1].trim().toUpperCase(), data[2].trim().toUpperCase());
   }
 
@@ -322,40 +272,31 @@ void receiveMessage(String message)
 
 
 
-void sendMessage(String message)
-{
+void sendMessage(String message) {
   // for some reason I can only get the server to send strings
   // so send the length of the message as a string of the first four characters
   
   int messageLength = message.length();
   String messageLengthString = "";
-  if (messageLength == 0)
-  {
+  if (messageLength == 0) {
     return;
-  }else if (messageLength < 10)
-  {
+  } else if (messageLength < 10) {
     messageLengthString = "000" + str(messageLength);
-  }else if (messageLength < 100)
-  {
+  } else if (messageLength < 100) {
     messageLengthString = "00" + str(messageLength); 
-  }else if (messageLength < 1000)
-  {
+  } else if (messageLength < 1000) {
     messageLengthString = "0" + str(messageLength); 
-  }else if (messageLength < 10000)
-  {
+  } else if (messageLength < 10000) {
     messageLengthString = str(messageLength); 
   }
 
   String messageToSend = messageLengthString + message;
 
-  try 
-  {
+  try {
     tcpServer.write(messageToSend);
     println("Sent network message: " + messageToSend);
-  }
-  catch(Exception e)
-  {
-    println("Failed to send network message: " + messageToSend);    
+  } catch (Exception e) {
+      println("Failed to send network message: " + messageToSend + e.getMessage());    
   }
 
   
@@ -363,8 +304,7 @@ void sendMessage(String message)
 
 
 
-void changeBrightness(int b)
-{
+void changeBrightness(int b) {
   opc.setColorCorrection(2.5, b/100f, b/100f, b/100f);  
   brightness = b;
   println("Color correction: " + opc.colorCorrection);
@@ -372,59 +312,25 @@ void changeBrightness(int b)
 
 
 
-void calibrateSensors()
-{
-  // DISPLAY MESSAGE ON GRID TO REMOVE CUPS
-  
-  // TELL ARDUINO TO CALIBRATE
-  try
-  {
-    
-  }
-  catch(Exception e)
-  {
-    println("Unable to send calibrate command to arduino");
-    return; 
-  }
-  
-  // DISPLAY COUNTDOWN WHILE CALIBRATING
-  
-  // WAIT FOR ARDUINO TO SAY IT'S DONE
-  while(calibrating){
-   // blink leds red
-  }
-  
-  // MAKE LIGHTS GREEN INSTEAD OF RED
-  // RESUME PREVIOUS MODE
-
-} // end calibrateSensors
 
 
-
-void checkForCommands()
-{
+void checkForCommands() {
   // network stuff
   Client client = tcpServer.available();
-  if (client != null)
-  {
+  if (client != null) {
     String whatClientSaid = client.readString();
-    if(whatClientSaid != null)
-    {
+    if(whatClientSaid != null) {
       // receive command from app     
       receiveMessage(whatClientSaid); 
     }
   } 
   
-  if (serialClient.available() > 0 )
-  {
+  if (serialClient.available() > 0 ) {
     String networkSerial = serialClient.readStringUntil('\n');
-    if(networkSerial != null)
-    {
+    if(networkSerial != null) {
       receiveMessage("SERIAL " + networkSerial);
     }
   }
-  
-  
   
 } // end checkForCommands
 
@@ -434,16 +340,13 @@ void checkForCommands()
 
 
 
-void changeColour(String colourToChange, String c)
-{
+void changeColour(String colourToChange, String c) {
   c = "FF" + c; // make sure alpha channel is opaque
-  if (colourToChange.equals("PRIMARY") && c.length() == 8)
-  {
+  if (colourToChange.equals("PRIMARY") && c.length() == 8) {
     primaryColour = unhex(c);
     println("Colour changed to: " + c);
     sendMessage("Primary colour changed to: " + c);
-  } else if (colourToChange.equals("SECONDARY") && c.length() == 8)
-  {
+  } else if (colourToChange.equals("SECONDARY") && c.length() == 8) {
     secondaryColour = unhex(c);
     println("Colour changed to: " + c);
     sendMessage("Secondary colour changed to: " + c);
@@ -451,10 +354,8 @@ void changeColour(String colourToChange, String c)
 }
 
 
-void buttonPressed(int b)
-{
-  switch (b)
-  {
+void buttonPressed(int b) {
+  switch (b) {
     case 1:
       modeChange("TOGGLE");
       break;
@@ -469,10 +370,8 @@ void buttonPressed(int b)
 }
 
 
-void buttonHeld(int b)
-{
-  switch (b)
-  {
+void buttonHeld(int b) {
+  switch (b) {
     case 1:
       modeChange("OFF");
       break;
