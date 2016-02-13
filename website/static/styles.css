@@ -1,0 +1,141 @@
+body {
+  font-family: Montserrat, Arial;
+  color: black;
+  text-align: justify;
+}
+
+p {
+  font-size: 20px;
+  margin-top: 0px;
+  margin-bottom: 15px;
+
+}
+
+a {
+  font-size: 14px;
+}
+
+a:link {
+  color: #1C3463;
+}
+a:visited {
+  color: #BBB;
+}
+a:hover {
+  color: teal;
+}
+
+
+h1 {
+  color: #1C3463;
+  font-size: 36px;
+}
+
+input[type=text] {
+  font-size: 16px;
+  height: 40px;
+  width: 180px;
+  padding-left: 8px;
+  box-sizing: border-box;
+  outline: none;
+  border: 2px solid #BBB;
+  transition-duration: 0.3s;
+}
+input[type=text]:focus {
+  border: 2px solid #333;
+}
+
+input[type=color] {
+  height:35px;
+  width: 70px;
+  color: red;
+  margin-bottom: 0px;
+}
+
+input[type=range] {
+  -webkit-appearance: none;
+  width:170px;
+  vertical-align: middle;
+
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 800px;
+  height: 10px;
+  background: #BBB;
+  border: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  border: 2px solid #222;
+  height: 33px;
+  width: 15px;
+  background:#1C3463;
+  cursor: pointer;
+  margin-top: -11px;
+}
+input[type=range]:focus {
+  outline: none;
+}
+input[type=range]:focus::-webkit-slider-runnable-track {
+  background: #BBB;
+}
+
+/* All the same stuff for Firefox */
+input[type=range]::-moz-range-thumb {
+  border: 2px solid #222;
+  height: 33px;
+  width: 15px;
+  background: #1C3463;
+  cursor: pointer;
+}
+/* All the same stuff for IE */
+input[type=range]::-ms-thumb {
+  border: 2px solid #222;
+  height: 33px;
+  width: 15px;
+  background: #1C3463;
+  cursor: pointer;
+}
+
+select {
+  vertical-align: middle;
+  outline: none;
+  font-size: 16px;
+  color: #222;
+  border: 2px solid black;
+  height: 40px;
+  transition-duration: 0.4s;
+}
+
+select:hover {
+  color: white;
+  background-color: #1C3463;
+}
+select:focus {
+  transition-duration: 0.4s;
+  color: black;
+  background-color: white;
+  transition-duration: 0s;
+}
+
+.button {
+  position: inherit;
+  vertical-align: bottom;
+  font-family: Montserrat, Arial;
+  background-color: white;
+  border: 2px solid black;
+  color: black;
+  width: 80px;
+  height: 40px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 18px;
+  transition-duration: 0.3s;
+  cursor: pointer;
+}
+
+.button:hover {
+  background-color:#1C3463;
+  color: white;
+}

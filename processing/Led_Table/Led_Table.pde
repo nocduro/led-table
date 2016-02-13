@@ -1,7 +1,8 @@
 import processing.net.*;
 import ddf.minim.analysis.*;
 import ddf.minim.*;
-
+import java.net.*;
+import java.util.Arrays;
 
 String tableIP = "127.0.0.1";
 
@@ -10,6 +11,7 @@ Server tcpServer; // used to send commands to the sketch remotely
 Client serialClient; //used for tcp connection to Arduino serial output
 OPC opc; // open pixel control
 Mode mode;
+StringList modeList;
 
 int drawFrameRate = 60;
 
@@ -18,7 +20,7 @@ int[] analogData = new int[4];
 
 int brightness = 100;
 String statusMessage = "";
-byte currentMode = 1;
+int currentMode = 1;
 /*
 0 => off
 1 => test mode / startup animation
@@ -55,7 +57,10 @@ void setup() {
   
   // connect to lineIn
   try {
-    sound = minim.getLineIn(Minim.STEREO, 2048);
+    // this must be mono to work on the Pi
+    // run: amixer set Mic Capture 16
+    // to get maximum Microphone gain on Pi
+    sound = minim.getLineIn(Minim.MONO, 2048, 48000.0, 16);
   } catch(Exception e) {
       statusMessage+= "Minim error: Unable to connect to LineIn";
       println("Minim error: " + e.getMessage());
@@ -63,7 +68,7 @@ void setup() {
   
   // load a local file for testing purposes
   try {
-    song = minim.loadFile("BadBlood.mp3", 2048);
+    song = minim.loadFile("HoldOn.mp3", 2048);
   } catch (Exception e) {
       statusMessage+= "Minim error: Unable to load song";
       println("Minim error: " + e.getMessage());
@@ -129,12 +134,28 @@ void setup() {
   frameRate(drawFrameRate);
   changeBrightness(brightness);
   println("Frame rate set to: " + drawFrameRate);
-  println("Color correction: " + opc.colorCorrection);
+  
+  
+  /// MODES SETUP
+  modeList = new StringList();
+  modeList.append("OFF");
+  modeList.append("SOLIDCOLOUR");
+  modeList.append("RAINBOW");
+  modeList.append("ROTATINGCUBE");
+  modeList.append("SOUNDBALL");
   
   // set the startup mode
-  mode = new SoundBall(song);
+  changeMode("SOUNDBALL");
+  //mode = new SoundBall(sound);
 
   println("SETUP COMPLETE.");
+  println("   _____      __                 ______                      __     __    "); 
+  println("  / ___/___  / /___  ______     / ____/___  ____ ___  ____  / /__  / /____ ");
+  println("  \\__ \\/ _ \\/ __/ / / / __ \\   / /   / __ \\/ __ `__ \\/ __ \\/ / _ \\/ __/ _ \\");
+  println(" ___/ /  __/ /_/ /_/ / /_/ /  / /___/ /_/ / / / / / / /_/ / /  __/ /_/  __/");
+  println("/____/\\___/\\__/\\__,_/ .___/   \\____/\\____/_/ /_/ /_/ .___/_/\\___/\\__/\\___/ ");
+  println("                   /_/                            /_/                      ");        
+
 }
 
 
@@ -144,33 +165,6 @@ void draw() {
   mode.update();
   mode.display();
 }
-
-
-void modeChange(String m) {
-  if (m.equals("TOGGLE")){
-    if (currentMode == 4){
-      currentMode = 0;
-    } else {
-      currentMode++;
-    }
-  } else if (m.equals("OFF")) {
-    currentMode = 0;
-  } else if (m.equals("ROTATECUBE")) {
-    currentMode = 1;
-  } else if (m.equals("SOLIDCOLOUR")) {
-    currentMode = 2;
-  } else if (m.equals("SOUNDTEST")) {
-    currentMode = 3;
-  } else if (m.equals("BUBBLES")) {
-    currentMode = 4;
-  }
-    
-   
-  println("Mode changed to: " + m);
-  //sendMessage("Mode changed to " +m);
-}
-
-
 
 
 void serialMessage(String serialData)
@@ -255,8 +249,8 @@ void receiveMessage(String message)
   } else if ( command.equals("SERIAL") ) {
     serialMessage(message);    
   } else if (command.equals("MODE") && data.length > 1) {
-    modeChange(data[1].trim().toUpperCase());
-  } else if (message.trim().equals("firstConnect")) {
+    changeMode(data[1].trim().toUpperCase());
+  } else if (message.trim().equals("FIRSTCONNECT")) {
     if (statusMessage.equals("")){
       statusMessage = "No startup errors; "; 
     }
@@ -316,14 +310,19 @@ void changeBrightness(int b) {
 
 void checkForCommands() {
   // network stuff
-  Client client = tcpServer.available();
-  if (client != null) {
-    String whatClientSaid = client.readString();
-    if(whatClientSaid != null) {
-      // receive command from app     
-      receiveMessage(whatClientSaid); 
-    }
-  } 
+  try {
+    Client client = tcpServer.available();
+    if (client != null) {
+      String whatClientSaid = client.readString();
+      if(whatClientSaid != null) {
+        // receive command from app     
+        receiveMessage(whatClientSaid); 
+      }
+    } 
+  } catch(Exception e) {
+    println(e.getMessage());
+  }
+  
   
   if (serialClient.available() > 0 ) {
     String networkSerial = serialClient.readStringUntil('\n');
@@ -357,7 +356,7 @@ void changeColour(String colourToChange, String c) {
 void buttonPressed(int b) {
   switch (b) {
     case 1:
-      modeChange("TOGGLE");
+      changeMode("TOGGLE");
       break;
     case 2:
       break;
@@ -373,7 +372,7 @@ void buttonPressed(int b) {
 void buttonHeld(int b) {
   switch (b) {
     case 1:
-      modeChange("OFF");
+      changeMode("OFF");
       break;
     case 2:
       break;
@@ -383,4 +382,48 @@ void buttonHeld(int b) {
       println("Unrecognized button press");
   }
   
+}
+
+void changeMode(String s)
+{  
+  s = s.trim().toUpperCase();
+  println("Trying to change to", s);
+  
+  // try to match the input string to a mode number:
+  if (modeList.hasValue(s) == true) {
+    for (int i = 0; i < modeList.size(); i++) {
+      if (modeList.get(i).equals(s) ) {
+        currentMode = i;
+        break;
+      }
+    }
+  } else {
+    // mode not found, or we are just incrementing to the next mode
+    if (currentMode < modeList.size() -1) {
+      currentMode +=1;
+    } else {
+      currentMode = 0;
+    }
+  }
+  println("currentMode:", currentMode);
+  switch(currentMode) {
+    case 0: // OFF
+      mode = new SolidColour(0);
+      break;
+    case 1: // SOLIDCOLOUR
+      mode = new SolidColour(primaryColour);
+      break;
+    case 2: // RAINBOW
+      mode = new Rainbow();
+      break;
+    case 3:
+      mode = new RotatingCube();
+      break;
+    case 4:
+      mode = new SoundBall(sound);
+      break;
+    default:
+      mode = new SolidColour(0);
+      break;
+  }
 }

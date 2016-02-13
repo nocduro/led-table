@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1">
+  <title>LED Table</title>
+  <link rel="stylesheet" type="text/css" href="../static/styles.css" media="screen">
+  <link href='https://fonts.googleapis.com/css?family=Montserrat' rel='stylesheet' type='text/css'>
+</head>
+
+<body>
+  <h1>LED Beer Pong Table</h1>
+
+
+
+<form method="POST">
+<p>Mode:
+<select name="modeSelection">
+  <option value="NEXTMODE">Next Mode</option>
+  <option value="RAINBOW">Rainbow</option>
+  <option value="SOLIDCOLOUR">Solid Colour</option>
+  <option value="SOUNDBALL">Sound Reactive Ball</option>
+  <option value="ROTATINGCUBE">Rotating test cube</option>
+  <option value="BOUNCINGBALLS">Bouncing Balls</option>
+  <option value="SOUNDREACTIVEBALLS">Sound Reactive Balls</option>
+  <option value="OFF">Turn Off</option>
+</select>
+<button class="button" type="submit" value="Submit">SEND</button>
+</p>
+</form>
+
+<form method="POST">
+<p>Colour 1:
+  <input type="color" id="colourPicker1" name="colourPicker1" value="#00ffff">
+  <button class="button" type="submit" value="Submit">SEND</button>
+</p>
+</form>
+
+<form method="POST">
+<p>
+  Colour 2:
+  <input type="color" id="colourPicker2" name="colourPicker2" value="#aaff00">
+  <button class="button" type="submit" value="Submit">SEND</button>
+</p>
+</form>
+
+<form method="POST">
+<p>
+  <label><span>Brightness: </span><input type="range" name="brightness" required value="100"></label>
+  <button class="button" type="submit" value="Submit">SEND</button>
+</p>
+</form>
+
+<form method="POST">
+<p>
+  <label>Custom: <input type="text" id="customCommand" name="customCommand" maxlength="50">
+  <button class="button" type="submit" value="Submit">SEND</button>
+</p>
+</form>
+
+<p>
+  <a href="https://github.com/nocduro/led-table">Code on Github</a>
+</p>
+
+</body>
+
+</html>

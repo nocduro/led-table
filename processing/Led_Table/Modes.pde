@@ -3,7 +3,7 @@ import ddf.minim.analysis.*;
 
 public interface Mode 
 {
-  public int drawFrameRate = 60;
+  
   
   // run the calculations for that mode
   public void update();
@@ -31,6 +31,7 @@ public static class LEDTable
   static float[] cupY = new float[20];
   static int drawFrameRate, tableWidth, tableHeight;
   static float mmPerPixel, cupDiameter;
+  static StringList modes = new StringList();
   
   static void initialize(float tableWidthMM, float tableHeightMM, int drawFrameRate, float mmPerPixel) {
     LEDTable.drawFrameRate = drawFrameRate;
@@ -44,6 +45,20 @@ public static class LEDTable
     }
     generateCupCoordinates();
   }
+  
+  static void addMode(String m) {
+    modes.append(m);    
+  }
+  
+  // return the name of a mode
+  static String getMode(int x) {
+    if ( x > modes.size() -1 || x < 0) {
+      throw new IndexOutOfBoundsException();
+    }
+    
+    return modes.get(x); 
+  }
+
   
   private static void generateCupCoordinates() {
     // screw side
@@ -130,7 +145,7 @@ class Rainbow implements Mode {
   
   Rainbow() {
     hueVal = 0;
-    maxVal = Mode.drawFrameRate * cycleTime;
+    maxVal = LEDTable.drawFrameRate * cycleTime;
     colorMode(HSB, maxVal);
   }
   
@@ -159,7 +174,7 @@ class RotatingCube implements Mode
   
   // set the time for one rotation in seconds
   private void setTimeForRotation(int time) {
-    framesForRotation = time * Mode.drawFrameRate;
+    framesForRotation = time * LEDTable.drawFrameRate;
     radPerFrame = (2*PI) / framesForRotation;
   }
   
@@ -168,6 +183,7 @@ class RotatingCube implements Mode
     Mode.colours.clear();
     Mode.colours.append(unhex("FF0000AA"));
     setTimeForRotation(5);
+    colorMode(RGB, 255);
   }
   
   
@@ -199,12 +215,14 @@ class RotatingCube implements Mode
 
 class SoundBall implements Mode {
   AudioPlayer sound;
+  AudioInput mic;
   FFT fft;
   BeatDetect beat;
   
   float alpha,a;
   int numBars;
   float[] prevBars, currentBars;
+  int barMultiplier; // changes the size of the 'ball'
   
   SoundBall(AudioPlayer s) {
     sound = s;
@@ -215,13 +233,39 @@ class SoundBall implements Mode {
     numBars = 3;
     prevBars = new float[this.numBars];
     currentBars = new float[this.numBars];
+    barMultiplier = 20;
+    colorMode(RGB, 255);
+  }
+  
+  // constructor for audioInput
+  SoundBall(AudioInput s) {
+    mic = s;
+    fft = new FFT(mic.bufferSize(), mic.sampleRate());
+    beat = new BeatDetect();
+    alpha = 180;
+    numBars = 3;
+    prevBars = new float[this.numBars];
+    currentBars = new float[this.numBars];    
+    barMultiplier = 50;
+    colorMode(RGB, 255);
   }
   
   void update() {
     fft.linAverages(numBars);
-    fft.forward(sound.left);
+    
+    // use the right object to do fft on depending on how the class was created.
+    // sound is used if constructed with an AudioPlayer, mic is used when constructed with AudioInput
+    if (sound != null) {
+      fft.forward(sound.left);
+      // beat detection on sound level
+      beat.detect(sound.left);
+    } else if (mic != null) {
+      fft.forward(mic.left);
+      beat.detect(mic.left);
+    }
+    
     for (int i = 0; i < numBars; i++) {
-      float val = fft.getAvg(i) * 15 * (i*i+1); 
+      float val = fft.getAvg(i) * barMultiplier * (i*i+1); 
       if (val > prevBars[i] ) {
         currentBars[i] = prevBars[i] + ( (val- prevBars[i]) * 0.08 ); // fade up to new value
       } else {
@@ -231,9 +275,8 @@ class SoundBall implements Mode {
       
     }
     
-    // beat detection on sound level
-    beat.detect(sound.left);
-    a = map(alpha, 25, 150, 180, 255); 
+    
+    a = map(alpha, 25, 150, 130, 255); 
     if ( beat.isOnset() ) alpha = 150; 
     
     alpha *= 0.97;
@@ -260,8 +303,7 @@ class SoundBall implements Mode {
     
   }
    
-   
-   
+
   void setAttribute(String atr, int val) {
   }
 }
