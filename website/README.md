@@ -1,10 +1,12 @@
-*This documentation is incomplete...*
 # A webapp that controls an LED Beerpong Table
+Todo:
+* Learn how to use websockets instead of post requests
+* Add dynamic menu depending on current mode (ex: gain slider for sound reactive modes)
 
 ## Description
-This webapp provides a UI to control an LED beerpong table from a web browser. The site includes options to change the current mode of the table, colours, microphone gain, etc. When a user makes a change to one of these options the server sends a TCP message to the application responsible for drawing to the LED matrix which then makes the change. In this project that is handled by a Processing sketch which runs 2 Fadecandy boards.
+This webapp provides a UI to control an LED beerpong table from a web browser. The site includes options to change the current mode of the table, colours, etc. When a user makes a change to one of these options the server sends a TCP message to the application responsible for drawing to the LED matrix which then makes the change. In this project that is handled by a Processing sketch which runs 2 Fadecandy boards.
 
-The server is built with Python3 using Flask.
+The server is built with Python using Flask.
 ## Installation Instructions
 #### Uses the following python modules:
 
@@ -23,6 +25,7 @@ The app can be started by running: `python app.py`
 The app can be stopped by pressing `ctrl-BREAK` / `ctrl-PAUSE`
 
 ## License
+See LICENSE.md in projects root directory (MIT)
 
 ## References
 http://mattrichardson.com/Raspberry-Pi-Flask/
