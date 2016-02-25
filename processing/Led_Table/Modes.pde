@@ -307,3 +307,54 @@ class SoundBall implements Mode {
   void setAttribute(String atr, int val) {
   }
 }
+
+
+// Draws a rainbow to the display
+class ScrollText implements Mode {
+  int startx, starty, endx, endy;
+  MatrixText text;
+  int speedx, speedy; // speed in pixels/second
+  String str;
+  long frameCountOffset; // used to make sure we start the scroll in the correct position
+  int size, bottom;
+  int horizontalShift = 0;
+  
+  ScrollText(String input, float sizeMult, int startX, int startY, int endX, int endY, int speedX, int speedY, int gridOffset) {
+    text = new MatrixText();
+    str = input;
+    startx = startX;
+    starty = startY;
+    endx = endX;
+    endy = endY;
+    speedx = speedX;
+    speedy = speedY;
+    size = floor( sizeMult * 33/LEDTable.mmPerPixel); // sizeMult multiplies a value that is 1/10th the pixels between dots on the grid
+    //maxVal = LEDTable.drawFrameRate * cycleTime;
+    colorMode(RGB, 255);
+    bottom = gridOffset;
+    
+    noStroke();
+  }
+  
+  void update() {
+    background(0);
+    //text.drawString(str, 2, 200, 50);
+    if (size<33/LEDTable.mmPerPixel) {
+      text.drawString(str, size, startx+horizontalShift, bottom - ceil(33/LEDTable.mmPerPixel)*5 + 5);
+    } else {
+      text.drawString(str, size, startx + horizontalShift, bottom - size*7 + ceil(size/2) ); 
+    }
+    horizontalShift -=1;
+    if (horizontalShift < -(size*6*str.length())) {
+      // wrapped around..
+      horizontalShift = endx-startx;
+    }
+  }
+  
+  void display() {
+  }
+  
+  void setAttribute(String atr, int val) {
+  }
+  
+}

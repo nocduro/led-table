@@ -5,7 +5,7 @@ import java.net.*;
 import java.util.Arrays;
 
 String tableIP = "127.0.0.1";
-
+//String tableIP = "192.168.0.166";
 
 Server tcpServer; // used to send commands to the sketch remotely
 Client serialClient; //used for tcp connection to Arduino serial output
@@ -143,9 +143,10 @@ void setup() {
   modeList.append("RAINBOW");
   modeList.append("ROTATINGCUBE");
   modeList.append("SOUNDBALL");
+  modeList.append("SCROLLTEXT");
   
   // set the startup mode
-  changeMode("SOUNDBALL");
+  changeMode("SCROLLTEXT");
   //mode = new SoundBall(sound);
 
   println("SETUP COMPLETE.");
@@ -421,6 +422,15 @@ void changeMode(String s)
       break;
     case 4:
       mode = new SoundBall(sound);
+      break;
+    case 5:
+      //ScrollText(String input, int size, int startX, int startY, int endX, int endY, int speedX, int speedY)
+      // find the y value of the top of the grid:
+      int yOffset = floor(opc.pixelLocations[0]/width);
+      int xLeft = opc.pixelLocations[0] - (yOffset*width);
+      int xRight = xLeft + ceil(33/LEDTable.mmPerPixel * 30);
+      println("xLeft", xLeft, "xRight", xRight);
+      mode = new ScrollText("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ :.,?*+=-!", 0.5, xLeft, 200, xRight,200, 0, 5 , yOffset );
       break;
     default:
       mode = new SolidColour(0);
