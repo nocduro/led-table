@@ -4,41 +4,43 @@ import ddf.minim.*;
 import java.net.*;
 import java.util.Arrays;
 
-String tableIP = "127.0.0.1";
-//String tableIP = "192.168.0.166";
+/** Constants **/
+//final String tableIP = "127.0.0.1";
+final String tableIP = "192.168.0.225";
+final int CONTROL_PORT = 5204; // port that web app uses to connect
+final int drawFrameRate = 60;
+
 
 Server tcpServer; // used to send commands to the sketch remotely
-Client serialClient; //used for tcp connection to Arduino serial output
+Client serialClient; // used for tcp connection to Arduino serial output
 OPC opc; // open pixel control
-Mode mode;
-StringList modeList;
 
-int drawFrameRate = 60;
 
 // data arrays
 int[] analogData = new int[4];
 
+/** Initialize variables **/
 int brightness = 100;
 String statusMessage = "";
-int currentMode = 1;
-/*
-0 => off
-1 => test mode / startup animation
-2 => solid colour
-*/
 
-color primaryColour = #000099;
-color secondaryColour = #FF0000;
 
 // Audio setup
 Minim minim;
 AudioInput sound; // microphone
-AudioPlayer song; // plays locally stored songs
+
+Mode mode;
+CupMode cupMode;
+StringList modeList;
+int currentMode = 1;
+StringList cupModeList;
+int currentCupMode = 1;
 
 
 void setup() {
-  println("Starting setup.");
-  // Setup mm to pixel multiplier
+  println("Starting setup. V0.0.1a");
+  
+  
+  /** WINDOW SETUP **/
   float mmPerPixel = 3; // changes how large the processing window will be
   float mmWidthTable = 609.6; // physical width of table
   float mmLengthTable = 2438.4; // physical length of table
@@ -51,8 +53,11 @@ void setup() {
   //surface.setResizable(true);
   //surface.setSize(floor(mmLengthTable/mmPerPixel), floor(mmWidthTable/mmPerPixel)); 
   
+  frameRate(drawFrameRate);
   
-  // Audio setup
+  println("Frame rate set to: " + drawFrameRate);
+  
+  /** AUDIO SETUP **/
   minim = new Minim(this);
   
   // connect to lineIn
@@ -66,18 +71,12 @@ void setup() {
       println("Minim error: " + e.getMessage());
   }
   
-  // load a local file for testing purposes
-  try {
-    song = minim.loadFile("HoldOn.mp3", 2048);
-  } catch (Exception e) {
-      statusMessage+= "Minim error: Unable to load song";
-      println("Minim error: " + e.getMessage());
-  }
+  /** NETWORK SETUP **/
   
-  /// NETWORK SETUP
+  // server that web app connects to
+  tcpServer = new Server(this, CONTROL_PORT);
   
-  // setup remote control server
-  tcpServer = new Server(this, 5204);
+  // tcpClient to read Arduino serial output via ser2net
   try {
     print("Trying to connect to serial server.....");
     serialClient = new Client(this, tableIP, 12500);
@@ -86,9 +85,8 @@ void setup() {
       statusMessage += "Unable to connect to serial server"; 
       println("Unable to connect to Serial server: " + e.getMessage());
   }
-
  
-  // Connect to the local instance of fcserver. You can change this line to connect to another computer's fcserver
+  // Connect to the OPC server
   try {
     print("Connecting to FadeCandy Server.....");
     opc = new OPC(this, tableIP, 7890);
@@ -129,49 +127,57 @@ void setup() {
   }
   
   
-  /// DRAW SETUP
   
-  frameRate(drawFrameRate);
-  changeBrightness(brightness);
-  println("Frame rate set to: " + drawFrameRate);
-  
-  
-  /// MODES SETUP
+  /** MODE SETUP **/
   modeList = new StringList();
   modeList.append("OFF");
   modeList.append("SOLIDCOLOUR");
   modeList.append("RAINBOW");
   modeList.append("ROTATINGCUBE");
   modeList.append("SOUNDBALL");
-  modeList.append("SCROLLTEXT");
+  modeList.append("BUBBLES");
+  modeList.append("STARS");
+  
+  cupModeList = new StringList();
+  cupModeList.append("CUPTRANSPARENT");
+  cupModeList.append("SOLIDCOLOUR");
+  cupModeList.append("SOLIDCOLOURTRANSPARENT");
+  
+  println("done setting up mode lists");
+
+  changeBrightness(brightness);
+  
+  // fill colour data
+  LEDTable.colours.append(unhex("FF0000AA"));
+  LEDTable.colours.append(unhex("FFAA0000"));
+  LEDTable.colours.append(unhex("FF00AA00"));
+  LEDTable.colours.append(unhex("FFAA22AA"));
+  LEDTable.colours.append(unhex("FFCCBBAA"));
   
   // set the startup mode
-  changeMode("SCROLLTEXT");
-  //mode = new SoundBall(sound);
-
-  println("SETUP COMPLETE.");
-  println("   _____      __                 ______                      __     __    "); 
-  println("  / ___/___  / /___  ______     / ____/___  ____ ___  ____  / /__  / /____ ");
-  println("  \\__ \\/ _ \\/ __/ / / / __ \\   / /   / __ \\/ __ `__ \\/ __ \\/ / _ \\/ __/ _ \\");
-  println(" ___/ /  __/ /_/ /_/ / /_/ /  / /___/ /_/ / / / / / / /_/ / /  __/ /_/  __/");
-  println("/____/\\___/\\__/\\__,_/ .___/   \\____/\\____/_/ /_/ /_/ .___/_/\\___/\\__/\\___/ ");
-  println("                   /_/                            /_/                      ");        
-
+  changeMode("BUBBLES");
+  changeCupMode("SOLIDCOLOUR");
+  println("Default modes set");
+  
+  println("========= SETUP COMPLETE ========="); 
+  println();
 }
 
 
 void draw() {
-  checkForCommands();
+  // read commands from Arduino, and web app
+  checkForCommands();  
 
   mode.update();
   mode.display();
+  cupMode.display();
 }
 
 
 void serialMessage(String serialData)
 {
   // each line of data is sent seperately for now. The data type, data pin, and value are seperated by spaces
-  // here we seperate that info. example: "SERIAL IR 3 ON" means that IR detector #3 is now on sent via serial port
+  // here we separate that info. example: "SERIAL IR 3 ON" means that IR detector #3 is now on sent via serial port
   // format is "SERIAL DATA_TYPE DATA_NUMBER VALUE"
   String[] data = split(serialData, ' ');
   int dataType = 0;
@@ -222,11 +228,9 @@ void serialMessage(String serialData)
 
 
 
-
-
 void receiveMessage(String message)
 {
-  println("Received message: " + message);
+  print("Received message: " + message);
   
   // debug stuff
   //String reply = "I received this message: " + message;
@@ -243,7 +247,6 @@ void receiveMessage(String message)
   
   
   if (command.equals("BRIGHTNESS") && data.length == 2) {
-   
    changeBrightness( int( trim(data[1]) ) );
    sendMessage("You set the brightness to " + brightness);
    
@@ -258,9 +261,9 @@ void receiveMessage(String message)
     statusMessage += "brightness: " + brightness + "; mode ";
     sendMessage(statusMessage);
   } else if (command.equals("SHUTDOWN") && data.length == 1) {
-    // shutdown the pi gracefully somehow
+    try { shutdownPi(); } catch (Exception e) { println("Error shutting down Pi"); }
   } else if (command.equals("COLOUR") || command.equals("COLOR")) {
-    changeColour(data[1].trim().toUpperCase(), data[2].trim().toUpperCase());
+    changeColour(int(data[1].trim()), data[2].trim().toUpperCase());
   }
 
 } // end receive message
@@ -340,17 +343,13 @@ void checkForCommands() {
 
 
 
-void changeColour(String colourToChange, String c) {
-  c = "FF" + c; // make sure alpha channel is opaque
-  if (colourToChange.equals("PRIMARY") && c.length() == 8) {
-    primaryColour = unhex(c);
-    println("Colour changed to: " + c);
-    sendMessage("Primary colour changed to: " + c);
-  } else if (colourToChange.equals("SECONDARY") && c.length() == 8) {
-    secondaryColour = unhex(c);
-    println("Colour changed to: " + c);
-    sendMessage("Secondary colour changed to: " + c);
+void changeColour(int colourToChange, String c) {
+  if (colourToChange > 4 || colourToChange < 0) {
+    return;
   }
+  c = "FF" + c; // make sure alpha channel is opaque
+  LEDTable.colours.set(colourToChange, unhex(c));
+  println("Colour num",colourToChange, "changed to ", c);
 }
 
 
@@ -360,6 +359,7 @@ void buttonPressed(int b) {
       changeMode("TOGGLE");
       break;
     case 2:
+      changeCupMode("TOGGLE");
       break;
     case 3:
       break;
@@ -385,8 +385,7 @@ void buttonHeld(int b) {
   
 }
 
-void changeMode(String s)
-{  
+void changeMode(String s) {  
   s = s.trim().toUpperCase();
   println("Trying to change to", s);
   
@@ -412,7 +411,7 @@ void changeMode(String s)
       mode = new SolidColour(0);
       break;
     case 1: // SOLIDCOLOUR
-      mode = new SolidColour(primaryColour);
+      mode = new SolidColour();
       break;
     case 2: // RAINBOW
       mode = new Rainbow();
@@ -424,16 +423,66 @@ void changeMode(String s)
       mode = new SoundBall(sound);
       break;
     case 5:
-      //ScrollText(String input, int size, int startX, int startY, int endX, int endY, int speedX, int speedY)
-      // find the y value of the top of the grid:
-      int yOffset = floor(opc.pixelLocations[0]/width);
-      int xLeft = opc.pixelLocations[0] - (yOffset*width);
-      int xRight = xLeft + ceil(33/LEDTable.mmPerPixel * 30);
-      println("xLeft", xLeft, "xRight", xRight);
-      mode = new ScrollText("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ :.,?*+=-!", 0.5, xLeft, 200, xRight,200, 0, 5 , yOffset );
+      // Bubbles(count, size, lifespan);
+      mode = new Bubbles(30, 85, 100);
+      break;
+    case 6: // 'stars' using bubbles
+      mode = new Bubbles(30, 15, 100);
       break;
     default:
       mode = new SolidColour(0);
       break;
   }
+}
+
+
+void changeCupMode(String s) {
+  s = s.trim().toUpperCase();
+  println("Trying to change cupMode to", s);
+  
+  // try to match the input string to a mode number:
+  if (cupModeList.hasValue(s) == true) {
+    for (int i = 0; i < cupModeList.size(); i++) {
+      if (cupModeList.get(i).equals(s) ) {
+        currentCupMode = i;
+        break;
+      }
+    }
+  } else {
+    // mode not found, or we are just incrementing to the next mode
+    if (currentCupMode < cupModeList.size() -1) {
+      currentCupMode +=1;
+    } else {
+      currentCupMode = 0;
+    }
+  }
+  println("currentCupMode:", currentCupMode);
+  switch(currentCupMode) {
+    case 0: // No cup rendering
+      cupMode = new CupTransparent();
+      break;
+    case 1: // SOLIDCOLOUR
+      cupMode = new CupSolidColour();
+      break;
+    case 2: // overlay solid colour don't draw black
+      cupMode = new CupSolidColour(true, true);
+    default:
+      cupMode = new CupTransparent();
+      break;
+  }
+}
+
+
+
+void shutdownPi() throws IOException {
+  // turn pixels off
+  for (int i = 0; i < opc.pixelLocations.length; i++) {
+    opc.setPixel(i, 0);
+  }
+  opc.writePixels();
+  
+  // gracefully shutdown the Pi via:
+  // http://stackoverflow.com/questions/25637/shutting-down-a-computer
+  Runtime.getRuntime().exec("shutdown -h now");
+  System.exit(0);  
 }
