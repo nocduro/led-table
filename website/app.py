@@ -39,12 +39,12 @@ def parse_message(key, val):
     if key == 'COLOURPICKER1':
         # strip the # from the colour
         val = val.replace("#", "")
-        send_message('COLOUR PRIMARY ' + val)
+        send_message('COLOUR 0 ' + val)
         return
     if key == 'COLOURPICKER2':
         # strip the # from the colour
         val = val.replace("#", "")
-        send_message('COLOUR SECONDARY ' + val)
+        send_message('COLOUR 1 ' + val)
         return
 
 

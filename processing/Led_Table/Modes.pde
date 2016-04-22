@@ -425,6 +425,15 @@ class Bubbles implements Mode {
     }
   }
   
+    Bubbles(int count, int size, int lifespan, color c) {
+    particles = new ArrayList<Particle>();
+    dot = loadImage("dot.png");
+    for (int i = 0; i < count; i++) {
+      //Particle (size, lifespan)
+      particles.add(new Particle(c, size, lifespan));
+    }
+  }
+  
   
   
   void update() {

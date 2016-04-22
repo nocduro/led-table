@@ -135,6 +135,7 @@ void setup() {
   modeList.append("RAINBOW");
   modeList.append("ROTATINGCUBE");
   modeList.append("SOUNDBALL");
+  modeList.append("BUBBLESRAINBOW");
   modeList.append("BUBBLES");
   modeList.append("STARS");
   
@@ -426,7 +427,10 @@ void changeMode(String s) {
       // Bubbles(count, size, lifespan);
       mode = new Bubbles(30, 85, 100);
       break;
-    case 6: // 'stars' using bubbles
+    case 6:
+      mode = new Bubbles(30,85,100, LEDTable.colours.get(0));
+      break;
+    case 7: // 'stars' using bubbles
       mode = new Bubbles(30, 15, 100);
       break;
     default:
