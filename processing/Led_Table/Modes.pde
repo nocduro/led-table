@@ -34,7 +34,7 @@ public static class LEDTable
   
   static void initialize(float tableWidthMM, float tableLengthMM, int drawFrameRate, float mmPerPixel) {
     LEDTable.drawFrameRate = drawFrameRate;
-    LEDTable.cupDiameter = 75/mmPerPixel;
+    LEDTable.cupDiameter = ceil(75/mmPerPixel)+2;
     LEDTable.tableWidth = floor(tableWidthMM/mmPerPixel);
     LEDTable.tableLength = floor(tableLengthMM/mmPerPixel);
     LEDTable.mmPerPixel = mmPerPixel;
@@ -312,10 +312,6 @@ public interface CupMode
   // display the changes on the screen/matrix
   public void display();
   
-  // set the colour
-  //public IntList colours = new IntList();
-  //public void setColour(int idx, String colour);
-  
   // set specific settings for that mode?
   public void setAttribute(String attribute, int val);
   
@@ -333,17 +329,20 @@ class CupSolidColour implements CupMode
   // default constructor
   CupSolidColour() {
     colorMode(RGB, 255);
-    this.differentColours = true;
-    this.transparent = true;
+    this.differentColours = false;
+    this.transparent = false;
     
-    println("cup solid");
+    println("Cup: SOLID");
     
   }
   
-  CupSolidColour(boolean twoSides, boolean transparent) {
+  CupSolidColour(boolean twoSides, boolean transpar) {
     colorMode(RGB, 255);
-    this.differentColours = true;
-    this.transparent = true;
+    this.differentColours = twoSides;
+    this.transparent = transpar;
+    println("this.transparent:", this.transparent);
+    println("this.differentColours:", this.differentColours);
+    println("Cup: SOLID");
   }
   
   void display() {  

@@ -9,7 +9,8 @@ final int cupDiameter = ceil(75/mmPerPixel);
 boolean[] irData = new boolean[20];
 float[] cupX = new float[20];
 float[] cupY = new float[20];
-
+float[] buttonX = new float[3];
+int buttonY;
 
 Server server;
 Client currClient;
@@ -31,7 +32,7 @@ void setup() {
   fill(255,0,0);
   text("Cup Simulator - Server", 10, 30);
   
-  
+  buttonY = height - 30;
   
   // draw all cups off
   generateCupCoordinates();
@@ -39,6 +40,12 @@ void setup() {
   for (int i=0; i<20; i++) {
     irData[i] = false;
     ellipse(cupX[i], cupY[i], cupDiameter, cupDiameter);
+  }
+  buttonX[0] = width/2 - 2*cupDiameter;
+  buttonX[1] = width/2;
+  buttonX[2] = width/2 + 2*cupDiameter;
+  for (int i = 0; i < 3; i++) {
+    ellipse(buttonX[i], buttonY, cupDiameter, cupDiameter);
   }
   
 }
@@ -95,6 +102,12 @@ void mousePressed() {
     }
   }
   
+  for (int i=0; i<3; i++) {
+    float dist = sqrt( sq(buttonX[i]-x) + sq(buttonY-y) );
+    if (dist < cupDiameter/2) {
+      sendMessage("BUTTON " + (i+1) + " PRESSED\n");
+    }
+  }
   
 }
 

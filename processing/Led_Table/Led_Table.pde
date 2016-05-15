@@ -5,8 +5,8 @@ import java.net.*;
 import java.util.Arrays;
 
 /** Constants **/
-//final String tableIP = "127.0.0.1";
-final String tableIP = "192.168.0.225";
+final String tableIP = "127.0.0.1";
+//final String tableIP = "192.168.0.225";
 final int CONTROL_PORT = 5204; // port that web app uses to connect
 final int drawFrameRate = 60;
 
@@ -157,7 +157,7 @@ void setup() {
   
   // set the startup mode
   changeMode("BUBBLES");
-  changeCupMode("SOLIDCOLOUR");
+  changeCupMode("SOLIDCOLOURTRANSPARENT");
   println("Default modes set");
   
   println("========= SETUP COMPLETE ========="); 
@@ -342,8 +342,6 @@ void checkForCommands() {
 
 
 
-
-
 void changeColour(int colourToChange, String c) {
   if (colourToChange > 4 || colourToChange < 0) {
     return;
@@ -461,6 +459,7 @@ void changeCupMode(String s) {
     }
   }
   println("currentCupMode:", currentCupMode);
+  cupMode = new CupTransparent();
   switch(currentCupMode) {
     case 0: // No cup rendering
       cupMode = new CupTransparent();
@@ -468,8 +467,9 @@ void changeCupMode(String s) {
     case 1: // SOLIDCOLOUR
       cupMode = new CupSolidColour();
       break;
-    case 2: // overlay solid colour don't draw black
+    case 2: // SOLIDCOLOUR TRANSPARENT
       cupMode = new CupSolidColour(true, true);
+      break;
     default:
       cupMode = new CupTransparent();
       break;
