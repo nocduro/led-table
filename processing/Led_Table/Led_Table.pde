@@ -9,57 +9,42 @@ final String tableIP = "127.0.0.1";
 //final String tableIP = "192.168.0.225";
 final int CONTROL_PORT = 5204; // port that web app uses to connect
 final int drawFrameRate = 60;
+final float tableWidth = 609.6; // physical width of table in mm
+final float tableLength = 2438.4; // physical length of table in mm
+final float mmPerPixel = 3; // scaling factor for Processing window size
 
-
+/** Network **/
 Server tcpServer; // used to send commands to the sketch remotely
 Client serialClient; // used for tcp connection to Arduino serial output
 OPC opc; // open pixel control
 
 
-// data arrays
-int[] analogData = new int[4];
-
 /** Initialize variables **/
-int brightness = 100;
 String statusMessage = "";
 
 
-// Audio setup
+/** Audio **/
 Minim minim;
 AudioInput sound; // microphone
 
-Mode mode;
-CupMode cupMode;
-StringList modeList;
-int currentMode = 1;
-StringList cupModeList;
-int currentCupMode = 1;
+LEDTable table;
 
+void settings() {
+  // setup window size depending on scaling factor mmPerPixel (how many
+  // millimetres a single pixel represents)
+  size(floor(tableLength/mmPerPixel), floor(tableWidth/mmPerPixel), P3D);
+}
 
 void setup() {
   println("Starting setup. V0.0.1a");
-  
-  
-  /** WINDOW SETUP **/
-  float mmPerPixel = 3; // changes how large the processing window will be
-  float mmWidthTable = 609.6; // physical width of table
-  float mmLengthTable = 2438.4; // physical length of table
-  
-  // initialize the table with constants used by other classes
-  LEDTable.initialize(mmWidthTable, mmLengthTable, drawFrameRate, mmPerPixel);
-  size(812, 203, P3D);
-  
-  // For some reason this code doesn't work on the Pi:
-  //surface.setResizable(true);
-  //surface.setSize(floor(mmLengthTable/mmPerPixel), floor(mmWidthTable/mmPerPixel)); 
-  
+  // initialize table object
+  table = new LEDTable(tableWidth, tableLength, drawFrameRate, mmPerPixel);
+  //size(812, 203, P3D);
   frameRate(drawFrameRate);
-  
   println("Frame rate set to: " + drawFrameRate);
   
   /** AUDIO SETUP **/
   minim = new Minim(this);
-  
   // connect to lineIn
   try {
     // this must be mono to work on the Pi
@@ -86,7 +71,7 @@ void setup() {
       println("Unable to connect to Serial server: " + e.getMessage());
   }
  
-  // Connect to the OPC server
+  // Connect to the OPC server (FadeCandy)
   try {
     print("Connecting to FadeCandy Server.....");
     opc = new OPC(this, tableIP, 7890);
@@ -107,7 +92,6 @@ void setup() {
     opc.ledRing(498, 6, 75/mmPerPixel, 355/mmPerPixel, 31.83/mmPerPixel, 0); //8
     opc.ledRing(504, 6, 75/mmPerPixel, 455/mmPerPixel, 31.83/mmPerPixel, 0); //9
     
-    
     // Draw the right 10 cup arrangement
     opc.ledRing(510, 6, width - 335/mmPerPixel, 305/mmPerPixel, 31.83/mmPerPixel, PI); //0
     opc.ledRing(516, 6, width - 248/mmPerPixel, 355/mmPerPixel, 31.83/mmPerPixel, PI); //1
@@ -120,45 +104,14 @@ void setup() {
     opc.ledRing(558, 6, width - 75/mmPerPixel, 255/mmPerPixel, 31.83/mmPerPixel, PI); //8
     opc.ledRing(564, 6, width - 75/mmPerPixel, 155/mmPerPixel, 31.83/mmPerPixel, PI); //9
     
-    
     opc.connect();
   } catch(Exception e) {
       statusMessage += "Unable to connect to OPC server"; 
   }
   
-  
-  
-  /** MODE SETUP **/
-  modeList = new StringList();
-  modeList.append("OFF");
-  modeList.append("SOLIDCOLOUR");
-  modeList.append("RAINBOW");
-  modeList.append("ROTATINGCUBE");
-  modeList.append("SOUNDBALL");
-  modeList.append("BUBBLESRAINBOW");
-  modeList.append("BUBBLES");
-  modeList.append("STARS");
-  
-  cupModeList = new StringList();
-  cupModeList.append("CUPTRANSPARENT");
-  cupModeList.append("SOLIDCOLOUR");
-  cupModeList.append("SOLIDCOLOURTRANSPARENT");
-  
-  println("done setting up mode lists");
-
-  changeBrightness(brightness);
-  
-  // fill colour data
-  LEDTable.colours.append(unhex("FF0000AA"));
-  LEDTable.colours.append(unhex("FFAA0000"));
-  LEDTable.colours.append(unhex("FF00AA00"));
-  LEDTable.colours.append(unhex("FFAA22AA"));
-  LEDTable.colours.append(unhex("FFCCBBAA"));
-  
   // set the startup mode
   changeMode("BUBBLES");
   changeCupMode("SOLIDCOLOURTRANSPARENT");
-  println("Default modes set");
   
   println("========= SETUP COMPLETE ========="); 
   println();
@@ -169,9 +122,9 @@ void draw() {
   // read commands from Arduino, and web app
   checkForCommands();  
 
-  mode.update();
-  mode.display();
-  cupMode.display();
+  table.mode.update();
+  table.mode.display();
+  table.cupMode.display();
 }
 
 
@@ -203,13 +156,13 @@ void serialMessage(String serialData)
   {
     case 1:
       if (data[3].trim().equals("ON")) {
-        LEDTable.irData[int(data[2])] = true;
+        table.irData[int(data[2])] = true;
       } else if (data[3].trim().equals("OFF")) {
-        LEDTable.irData[int(data[2])] = false;
+        table.irData[int(data[2])] = false;
       }    
       break;
     case 2:
-      analogData[int(data[2])] = int(data[3]);
+      table.analogData[int(data[2])] = int(data[3]);
       break;
     case 3:
       if (data[3].trim().equals("PRESSED")) {
@@ -225,7 +178,6 @@ void serialMessage(String serialData)
       break;   
   } 
 }
-
 
 
 
@@ -249,7 +201,7 @@ void receiveMessage(String message)
   
   if (command.equals("BRIGHTNESS") && data.length == 2) {
    changeBrightness( int( trim(data[1]) ) );
-   sendMessage("You set the brightness to " + brightness);
+   sendMessage("You set the brightness to " + table.brightness);
    
   } else if ( command.equals("SERIAL") ) {
     serialMessage(message);    
@@ -259,7 +211,7 @@ void receiveMessage(String message)
     if (statusMessage.equals("")){
       statusMessage = "No startup errors; "; 
     }
-    statusMessage += "brightness: " + brightness + "; mode ";
+    statusMessage += "brightness: " + table.brightness + "; mode ";
     sendMessage(statusMessage);
   } else if (command.equals("SHUTDOWN") && data.length == 1) {
     try { shutdownPi(); } catch (Exception e) { println("Error shutting down Pi"); }
@@ -305,11 +257,9 @@ void sendMessage(String message) {
 
 void changeBrightness(int b) {
   opc.setColorCorrection(2.5, b/100f, b/100f, b/100f);  
-  brightness = b;
+  table.brightness = b;
   println("Color correction: " + opc.colorCorrection);
 }
-
-
 
 
 
@@ -341,13 +291,12 @@ void checkForCommands() {
 
 
 
-
 void changeColour(int colourToChange, String c) {
   if (colourToChange > 4 || colourToChange < 0) {
     return;
   }
   c = "FF" + c; // make sure alpha channel is opaque
-  LEDTable.colours.set(colourToChange, unhex(c));
+  table.colours.set(colourToChange, unhex(c));
   println("Colour num",colourToChange, "changed to ", c);
 }
 
@@ -389,50 +338,50 @@ void changeMode(String s) {
   println("Trying to change to", s);
   
   // try to match the input string to a mode number:
-  if (modeList.hasValue(s) == true) {
-    for (int i = 0; i < modeList.size(); i++) {
-      if (modeList.get(i).equals(s) ) {
-        currentMode = i;
+  if (table.modeList.hasValue(s) == true) {
+    for (int i = 0; i < table.modeList.size(); i++) {
+      if (table.modeList.get(i).equals(s) ) {
+        table.currentMode = i;
         break;
       }
     }
   } else {
     // mode not found, or we are just incrementing to the next mode
-    if (currentMode < modeList.size() -1) {
-      currentMode +=1;
+    if (table.currentMode < table.modeList.size() -1) {
+      table.currentMode +=1;
     } else {
-      currentMode = 0;
+      table.currentMode = 0;
     }
   }
-  println("currentMode:", currentMode);
-  switch(currentMode) {
+  println("currentMode:", table.currentMode, table.modeList.get(table.currentMode));
+  switch(table.currentMode) {
     case 0: // OFF
-      mode = new SolidColour(0);
+      table.mode = new SolidColour(0);
       break;
     case 1: // SOLIDCOLOUR
-      mode = new SolidColour();
+      table.mode = new SolidColour(table);
       break;
     case 2: // RAINBOW
-      mode = new Rainbow();
+      table.mode = new Rainbow(table);
       break;
     case 3:
-      mode = new RotatingCube();
+      table.mode = new RotatingCube(table);
       break;
     case 4:
-      mode = new SoundBall(sound);
+      table.mode = new SoundBall(table, sound);
       break;
     case 5:
       // Bubbles(count, size, lifespan);
-      mode = new Bubbles(30, 85, 100);
+      table.mode = new Bubbles(table, 30, 85, 100);
       break;
     case 6:
-      mode = new Bubbles(30,85,100, LEDTable.colours.get(0));
+      table.mode = new Bubbles(table, 30,85,100, table.colours.get(0));
       break;
     case 7: // 'stars' using bubbles
-      mode = new Bubbles(30, 15, 100);
+      table.mode = new Bubbles(table, 30, 15, 100);
       break;
     default:
-      mode = new SolidColour(0);
+      table.mode = new SolidColour(0);
       break;
   }
 }
@@ -443,35 +392,36 @@ void changeCupMode(String s) {
   println("Trying to change cupMode to", s);
   
   // try to match the input string to a mode number:
-  if (cupModeList.hasValue(s) == true) {
-    for (int i = 0; i < cupModeList.size(); i++) {
-      if (cupModeList.get(i).equals(s) ) {
-        currentCupMode = i;
+  if (table.cupModeList.hasValue(s) == true) {
+    for (int i = 0; i < table.cupModeList.size(); i++) {
+      if (table.cupModeList.get(i).equals(s) ) {
+        table.currentCupMode = i;
         break;
       }
     }
   } else {
     // mode not found, or we are just incrementing to the next mode
-    if (currentCupMode < cupModeList.size() -1) {
-      currentCupMode +=1;
+    if (table.currentCupMode < table.cupModeList.size() -1) {
+      table.currentCupMode +=1;
     } else {
-      currentCupMode = 0;
+      table.currentCupMode = 0;
     }
   }
-  println("currentCupMode:", currentCupMode);
-  cupMode = new CupTransparent();
-  switch(currentCupMode) {
+  
+  println("currentCupMode:", table.currentCupMode, table.cupModeList.get(table.currentCupMode));
+  table.cupMode = new CupTransparent();
+  switch(table.currentCupMode) {
     case 0: // No cup rendering
-      cupMode = new CupTransparent();
+      table.cupMode = new CupTransparent();
       break;
     case 1: // SOLIDCOLOUR
-      cupMode = new CupSolidColour();
+      table.cupMode = new CupSolidColour(table);
       break;
     case 2: // SOLIDCOLOUR TRANSPARENT
-      cupMode = new CupSolidColour(true, true);
+      table.cupMode = new CupSolidColour(table, true, true);
       break;
     default:
-      cupMode = new CupTransparent();
+      table.cupMode = new CupTransparent();
       break;
   }
 }

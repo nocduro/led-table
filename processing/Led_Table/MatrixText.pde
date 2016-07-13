@@ -155,7 +155,7 @@ public class MatrixText {
   }
   
   PGraphics generatePGraphics(String s) {
-    PGraphics p = createGraphics(stringWidth(s),stringHeight(),P3D);
+    PGraphics p = createGraphics(stringWidth(s), stringHeight(), P3D);
     p.beginDraw();
     p.noStroke();
     

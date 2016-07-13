@@ -20,84 +20,12 @@ public interface Mode
   
 }
 
-
-public static class LEDTable
-{
-  static boolean[] irData = new boolean[20];
-  static float[] cupX = new float[20];
-  static float[] cupY = new float[20];
-  static int drawFrameRate, tableWidth, tableLength;
-  static float mmPerPixel, cupDiameter;
-  
-  // set the colour
-  static IntList colours = new IntList();  
-  
-  static void initialize(float tableWidthMM, float tableLengthMM, int drawFrameRate, float mmPerPixel) {
-    LEDTable.drawFrameRate = drawFrameRate;
-    LEDTable.cupDiameter = ceil(75/mmPerPixel)+2;
-    LEDTable.tableWidth = floor(tableWidthMM/mmPerPixel);
-    LEDTable.tableLength = floor(tableLengthMM/mmPerPixel);
-    LEDTable.mmPerPixel = mmPerPixel;
-    // clear the irData array
-    for (int i = 0; i < 20; i++) {
-      irData[i] = false;
-    }
-    generateCupCoordinates();
-  }
-  
-  private static void generateCupCoordinates() {
-    // screw side
-    cupX[0] = 335/mmPerPixel;
-    cupY[0] = 305/mmPerPixel;
-    cupX[1] = 248/mmPerPixel;
-    cupY[1] = 255/mmPerPixel;
-    cupX[2] = 248/mmPerPixel;
-    cupY[2] = 355/mmPerPixel;
-    cupX[3] = 162/mmPerPixel;
-    cupY[3] = 205/mmPerPixel;
-    cupX[4] = 162/mmPerPixel;
-    cupY[4] = 305/mmPerPixel;
-    cupX[5] = 162/mmPerPixel;
-    cupY[5] = 405/mmPerPixel;
-    cupX[6] = 75/mmPerPixel;
-    cupY[6] = 155/mmPerPixel;
-    cupX[7] = 75/mmPerPixel;
-    cupY[7] = 255/mmPerPixel;
-    cupX[8] = 75/mmPerPixel;
-    cupY[8] = 355/mmPerPixel;
-    cupX[9] = 75/mmPerPixel;
-    cupY[9] = 455/mmPerPixel;
-    
-    cupX[10] = tableLength - 335/mmPerPixel;
-    cupY[10] = 305/mmPerPixel;
-    cupX[11] = tableLength - 248/mmPerPixel;
-    cupY[11] = 355/mmPerPixel;
-    cupX[12] = tableLength - 248/mmPerPixel;
-    cupY[12] = 255/mmPerPixel;
-    cupX[13] = tableLength - 162/mmPerPixel;
-    cupY[13] = 405/mmPerPixel;
-    cupX[14] = tableLength - 162/mmPerPixel;
-    cupY[14] = 305/mmPerPixel;
-    cupX[15] = tableLength - 162/mmPerPixel;
-    cupY[15] = 205/mmPerPixel;
-    cupX[16] = tableLength - 75/mmPerPixel;
-    cupY[16] = 455/mmPerPixel;
-    cupX[17] = tableLength - 75/mmPerPixel;
-    cupY[17] = 355/mmPerPixel;
-    cupX[18] = tableLength - 75/mmPerPixel;
-    cupY[18] = 255/mmPerPixel;
-    cupX[19] = tableLength - 75/mmPerPixel;
-    cupY[19] = 155/mmPerPixel;
-  }
-  
-}
-
 class SolidColour implements Mode {
   
   color c1;
   
-  SolidColour() {
-    c1 = LEDTable.colours.get(0);
+  SolidColour(LEDTable t) {
+    c1 = t.colours.get(0);
   }
   
   // set the colour if a string of the colour is passed in
@@ -132,10 +60,10 @@ class Rainbow implements Mode {
   int cycleTime = 20; // time in seconds to complete
   int maxVal;
   
-  Rainbow() {
+  Rainbow(LEDTable t) {
     hueVal = 0;
-    maxVal = LEDTable.drawFrameRate * cycleTime;
-    println("LEDTable.drawFrameRate", LEDTable.drawFrameRate);
+    maxVal = t.drawFrameRate * cycleTime;
+    println("LEDTable.drawFrameRate", t.drawFrameRate);
     println("rainbow maxVal", maxVal);
     colorMode(HSB, maxVal);
   }
@@ -162,22 +90,24 @@ class RotatingCube implements Mode
 {
   float radPerFrame;
   int counter, framesForRotation;
+  LEDTable table;
   
   // set the time for one rotation in seconds
   private void setTimeForRotation(int time) {
-    framesForRotation = time * LEDTable.drawFrameRate;
+    framesForRotation = time * table.drawFrameRate;
     radPerFrame = (2*PI) / framesForRotation;
   }
   
   // default constructor
-  RotatingCube() {
+  RotatingCube(LEDTable t) {
+    table = t;
     setTimeForRotation(5);
     colorMode(RGB, 255);
   }
   
   
   void update() {
-    fill( LEDTable.colours.get(0) );
+    fill( table.colours.get(0) );
 
     if (counter == framesForRotation) {
       counter = 0;
@@ -196,7 +126,7 @@ class RotatingCube implements Mode
     rotateZ(counter * radPerFrame);
     rotateY(counter * radPerFrame);
     rotateX(counter * radPerFrame);
-    box(300/LEDTable.mmPerPixel);
+    box(300/table.mmPerPixel);
     popMatrix();
   }
   
@@ -208,31 +138,19 @@ class RotatingCube implements Mode
 
 
 class SoundBall implements Mode {
-  AudioPlayer sound;
   AudioInput mic;
   FFT fft;
   BeatDetect beat;
+  LEDTable table;
   
   float alpha,a;
   int numBars;
   float[] prevBars, currentBars;
   int barMultiplier; // changes the size of the 'ball'
   
-  SoundBall(AudioPlayer s) {
-    sound = s;
-    sound.loop();
-    fft = new FFT(s.bufferSize(), s.sampleRate());
-    beat = new BeatDetect();
-    alpha = 180;
-    numBars = 3;
-    prevBars = new float[this.numBars];
-    currentBars = new float[this.numBars];
-    barMultiplier = 20;
-    colorMode(RGB, 255);
-  }
-  
   // constructor for audioInput
-  SoundBall(AudioInput s) {
+  SoundBall(LEDTable t, AudioInput s) {
+    table = t;
     mic = s;
     fft = new FFT(mic.bufferSize(), mic.sampleRate());
     beat = new BeatDetect();
@@ -246,17 +164,8 @@ class SoundBall implements Mode {
   
   void update() {
     fft.linAverages(numBars);
-    
-    // use the right object to do fft on depending on how the class was created.
-    // sound is used if constructed with an AudioPlayer, mic is used when constructed with AudioInput
-    if (sound != null) {
-      fft.forward(sound.left);
-      // beat detection on sound level
-      beat.detect(sound.left);
-    } else if (mic != null) {
-      fft.forward(mic.left);
-      beat.detect(mic.left);
-    }
+    fft.forward(mic.left);
+    beat.detect(mic.left);
     
     for (int i = 0; i < numBars; i++) {
       float val = fft.getAvg(i) * barMultiplier * (i*i+1); 
@@ -270,7 +179,7 @@ class SoundBall implements Mode {
     }
     
     
-    a = map(alpha, 25, 150, 130, 255); 
+    a = map(alpha, 25, 150, 180, 255); 
     if ( beat.isOnset() ) alpha = 150; 
     
     alpha *= 0.97;
@@ -306,116 +215,37 @@ class SoundBall implements Mode {
 
 
 
-
-public interface CupMode 
-{  
-  // display the changes on the screen/matrix
-  public void display();
-  
-  // set specific settings for that mode?
-  public void setAttribute(String attribute, int val);
-  
-  // find out what settings we can change for that mode
-  //public String[] getAttributes();
-  
-}
-
-
-class CupSolidColour implements CupMode
-{
-  boolean differentColours;
-  boolean transparent;
-  
-  // default constructor
-  CupSolidColour() {
-    colorMode(RGB, 255);
-    this.differentColours = false;
-    this.transparent = false;
-    
-    println("Cup: SOLID");
-    
-  }
-  
-  CupSolidColour(boolean twoSides, boolean transpar) {
-    colorMode(RGB, 255);
-    this.differentColours = twoSides;
-    this.transparent = transpar;
-    println("this.transparent:", this.transparent);
-    println("this.differentColours:", this.differentColours);
-    println("Cup: SOLID");
-  }
-  
-  void display() {  
-    colorMode(RGB, 255);
-    blendMode(BLEND);
-    for (int i = 0; i< LEDTable.irData.length; i++) {
-      if (LEDTable.irData[i]) {
-        if (differentColours && i>=10) {
-          fill(LEDTable.colours.get(3));
-        } else {fill(LEDTable.colours.get(2)); }
-        
-        ellipse(LEDTable.cupX[i], LEDTable.cupY[i], LEDTable.cupDiameter, LEDTable.cupDiameter);
-      } else {
-        fill(0);
-        if (!transparent) { 
-          ellipse(LEDTable.cupX[i], LEDTable.cupY[i], LEDTable.cupDiameter, LEDTable.cupDiameter); 
-        }
-      }
-    }
-  }
-  
-  void setAttribute(String atr, int val) {
-    
-  }
-  
-}
-
-
-class CupTransparent implements CupMode
-{
-  boolean differentColours;
-  // default constructor
-  CupTransparent() {    
-  }
-  
-  void display() {  
-  }
-  
-  void setAttribute(String atr, int val) {
-    
-  }
-  
-}
-
-
-
 class Bubbles implements Mode {
   ArrayList<Particle> particles;
   PVector origin;
   PImage dot;
+  LEDTable table;
   
   
   
   // default constructor
-  Bubbles() {    
+  Bubbles(LEDTable t) {   
+    table = t;
     particles = new ArrayList<Particle>();
     dot = loadImage("dot.png");
     for (int i = 0; i < 50; i++) {
       //Particle (size, lifespan)
-      particles.add(new Particle(LEDTable.colours.get(0), 15, 250));
+      particles.add(new Particle(table.colours.get(0), 15, 250));
     }
   }
   
-  Bubbles(int count) {    
+  Bubbles(LEDTable t, int count) {    
+    table = t;
     particles = new ArrayList<Particle>();
     dot = loadImage("dot.png");
     for (int i = 0; i < count; i++) {
       //Particle (size, lifespan)
-      particles.add(new Particle(LEDTable.colours.get(0)));
+      particles.add(new Particle(table.colours.get(0)));
     }
   }
   
-  Bubbles(int count, int size, int lifespan) {
+  Bubbles(LEDTable t, int count, int size, int lifespan) {
+    table = t;
     particles = new ArrayList<Particle>();
     dot = loadImage("dot.png");
     for (int i = 0; i < count; i++) {
@@ -424,7 +254,8 @@ class Bubbles implements Mode {
     }
   }
   
-    Bubbles(int count, int size, int lifespan, color c) {
+  Bubbles(LEDTable t, int count, int size, int lifespan, color c) {
+    table = t;
     particles = new ArrayList<Particle>();
     dot = loadImage("dot.png");
     for (int i = 0; i < count; i++) {

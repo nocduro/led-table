@@ -89,12 +89,12 @@ void mousePressed() {
       if (irData[i]) {
         // on
         fill(0, 50, 180);
-        println("IR", i, "ON");
+        //println("IR", i, "ON");
         sendMessage("IR " +i+ " ON\n");
       } else {
         // off
         fill(80);
-        println("IR", i, "OFF");
+        //println("IR", i, "OFF");
         sendMessage("IR " +i+ " OFF\n");
       }
       ellipse(cupX[i], cupY[i], cupDiameter, cupDiameter);
@@ -112,7 +112,7 @@ void mousePressed() {
 }
 
 void sendMessage(String message) {
-  println("Sending:", message);
+  //println("Sending:", message);
   server.write(message);
 
 }
