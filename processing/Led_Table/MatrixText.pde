@@ -100,12 +100,24 @@ public class MatrixText {
     0x08, 0x1C, 0x2A, 0x08, 0x08 // <-
   };
   
+  private LEDTable table;
+  private PGraphics mask, window;
+  private int x0, y0; // cursor position
   int size;
   
+  int xStart, yStart;
   
+  MatrixText(LEDTable t) {
+    this.size = ceil(33/mmPerPixel);
+    table = t;
+    
+    window = createGraphics(table.tableLength, table.tableWidth, P3D);
+    xStart = table.topLeftGridX - floor(33/(2*mmPerPixel));
+    yStart = table.topLeftGridY - floor(33/(2*mmPerPixel));
+  }
   
   MatrixText(int size) {
-    this.size = size;
+    this.size = size * ceil(33/mmPerPixel);
   }
   
   /* Takes in a character and returns the 5 bytes for that character */
@@ -181,11 +193,23 @@ public class MatrixText {
         }
       } 
     }
-    
     p.endDraw();
-    
-    
     return p;
   }
+  
+  void addText(String s, int x, int y) {
+    PGraphics pText = generatePGraphics(s);
+
+  }
+  
+  void setTextColour(color c) {
+    //tint(c);
+  }
+  
+  
+  void show() {
+  }
+  
+  
   
 }// end of class

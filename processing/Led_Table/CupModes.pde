@@ -22,15 +22,17 @@ class CupSolidColour implements CupMode
   CupSolidColour(LEDTable t) {
     table = t;
     colorMode(RGB, 255);
-    this.differentColours = false;
-    this.transparent = false;    
+    noStroke();
+    differentColours = false;
+    transparent = false;    
   }
   
   CupSolidColour(LEDTable t, boolean twoSides, boolean transpar) {
     table = t;
     colorMode(RGB, 255);
-    this.differentColours = twoSides;
-    this.transparent = transpar;
+    noStroke();
+    differentColours = twoSides;
+    transparent = transpar;
   }
   
   void display() {  
@@ -66,7 +68,8 @@ class CupTransparent implements CupMode
   CupTransparent() {    
   }
   
-  void display() {  
+  void display() {
+    return;
   }
   
   void setAttribute(String atr, int val) {

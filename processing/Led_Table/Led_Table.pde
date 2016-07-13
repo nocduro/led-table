@@ -28,6 +28,7 @@ Minim minim;
 AudioInput sound; // microphone
 
 LEDTable table;
+MatrixText text;
 
 void settings() {
   // setup window size depending on scaling factor mmPerPixel (how many
@@ -37,11 +38,12 @@ void settings() {
 
 void setup() {
   println("Starting setup. V0.0.1a");
-  // initialize table object
   table = new LEDTable(tableWidth, tableLength, drawFrameRate, mmPerPixel);
   //size(812, 203, P3D);
   frameRate(drawFrameRate);
   println("Frame rate set to: " + drawFrameRate);
+  
+  text = new MatrixText(table);
   
   /** AUDIO SETUP **/
   minim = new Minim(this);
@@ -57,7 +59,6 @@ void setup() {
   }
   
   /** NETWORK SETUP **/
-  
   // server that web app connects to
   tcpServer = new Server(this, CONTROL_PORT);
   
@@ -109,12 +110,18 @@ void setup() {
       statusMessage += "Unable to connect to OPC server"; 
   }
   
+  table.topLeftGridY = floor(opc.pixelLocations[14] / width);
+  table.topLeftGridX = opc.pixelLocations[14] - (table.topLeftGridY * width);
+  
   // set the startup mode
   table.changeMode("BUBBLES");
   table.changeCupMode("SOLIDCOLOURTRANSPARENT");
   
   println("========= SETUP COMPLETE ========="); 
   println();
+  
+  startAnimation();
+  
 }
 
 
@@ -124,9 +131,8 @@ void draw() {
 
   table.mode.update();
   table.mode.display();
-  table.cupMode.display();
+  table.cupMode.display();  
 }
-
 
 void serialMessage(String serialData)
 {
@@ -291,4 +297,11 @@ void shutdownPi() throws IOException {
   // http://stackoverflow.com/questions/25637/shutting-down-a-computer
   Runtime.getRuntime().exec("shutdown -h now");
   System.exit(0);  
+}
+
+
+void startAnimation() {
+  
+  
+  
 }

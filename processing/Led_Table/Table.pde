@@ -7,6 +7,8 @@ public class LEDTable
   int drawFrameRate, tableWidth, tableLength;
   float mmPerPixel;
   int cupDiameter, brightness;
+  int topLeftGridX, topLeftGridY;
+  boolean scoreEnabled;
   
   Mode mode;
   CupMode cupMode;
@@ -25,6 +27,7 @@ public class LEDTable
     this.tableLength = floor(tableLengthMM/mmPerPixel);
     this.mmPerPixel = mmPerPixel;
     this.brightness = 100;
+    this.scoreEnabled = false;
     // clear the irData array
     for (int i = 0; i < 20; i++) {
       irData[i] = false;
@@ -41,6 +44,7 @@ public class LEDTable
     modeList.append("BUBBLESRAINBOW");
     modeList.append("BUBBLES");
     modeList.append("STARS");
+    modeList.append("TEXT");
     
     cupModeList = new StringList();
     cupModeList.append("CUPTRANSPARENT");
@@ -104,7 +108,7 @@ public class LEDTable
   
   void changeBrightness(OPC opc, int b) {
     opc.setColorCorrection(2.5, b/100f, b/100f, b/100f);  
-    table.brightness = b;
+    brightness = b;
     println("Color correction: " + opc.colorCorrection);
   }
   
@@ -114,7 +118,7 @@ public class LEDTable
       return;
     }
     c = "FF" + c; // make sure alpha channel is opaque
-    table.colours.set(colourToChange, unhex(c));
+    colours.set(colourToChange, unhex(c));
     println("Colour num",colourToChange, "changed to ", c);
   }
   
@@ -128,6 +132,7 @@ public class LEDTable
         changeCupMode("TOGGLE");
         break;
       case 3:
+        scoreEnabled = !scoreEnabled;
         break;
       default:
         println("Unrecognized button press");
@@ -154,50 +159,53 @@ public class LEDTable
     println("Trying to change to", s);
     
     // try to match the input string to a mode number:
-    if (table.modeList.hasValue(s) == true) {
-      for (int i = 0; i < table.modeList.size(); i++) {
-        if (table.modeList.get(i).equals(s) ) {
-          table.currentMode = i;
+    if (modeList.hasValue(s) == true) {
+      for (int i = 0; i < modeList.size(); i++) {
+        if (modeList.get(i).equals(s) ) {
+          currentMode = i;
           break;
         }
       }
     } else {
       // mode not found, or we are just incrementing to the next mode
-      if (table.currentMode < table.modeList.size() -1) {
-        table.currentMode +=1;
+      if (currentMode < modeList.size() -1) {
+        currentMode +=1;
       } else {
-        table.currentMode = 0;
+        currentMode = 0;
       }
     }
-    println("currentMode:", table.currentMode, table.modeList.get(table.currentMode));
-    switch(table.currentMode) {
+    println("currentMode:", currentMode, modeList.get(currentMode));
+    switch(currentMode) {
       case 0: // OFF
-        table.mode = new SolidColour(0);
+        mode = new SolidColour(0);
         break;
       case 1: // SOLIDCOLOUR
-        table.mode = new SolidColour(table);
+        mode = new SolidColour(this);
         break;
       case 2: // RAINBOW
-        table.mode = new Rainbow(table);
+        mode = new Rainbow(this);
         break;
       case 3:
-        table.mode = new RotatingCube(table);
+        mode = new RotatingCube(this);
         break;
       case 4:
-        table.mode = new SoundBall(table, sound);
+        mode = new SoundBall(this, sound);
         break;
       case 5:
         // Bubbles(count, size, lifespan);
-        table.mode = new Bubbles(table, 30, 85, 100);
+        mode = new Bubbles(this, 30, 85, 100);
         break;
       case 6:
-        table.mode = new Bubbles(table, 30,85,100, table.colours.get(0));
+        mode = new Bubbles(this, 30,85,100, table.colours.get(0));
         break;
       case 7: // 'stars' using bubbles
-        table.mode = new Bubbles(table, 30, 15, 100);
+        mode = new Bubbles(this, 30, 15, 100);
+        break;
+      case 8: // 'TEXT'
+        mode = new Text(this, "HI");
         break;
       default:
-        table.mode = new SolidColour(0);
+        mode = new SolidColour(0);
         break;
     }
   }
@@ -208,36 +216,36 @@ public class LEDTable
     println("Trying to change cupMode to", s);
     
     // try to match the input string to a mode number:
-    if (table.cupModeList.hasValue(s) == true) {
-      for (int i = 0; i < table.cupModeList.size(); i++) {
-        if (table.cupModeList.get(i).equals(s) ) {
-          table.currentCupMode = i;
+    if (cupModeList.hasValue(s) == true) {
+      for (int i = 0; i < cupModeList.size(); i++) {
+        if (cupModeList.get(i).equals(s) ) {
+          currentCupMode = i;
           break;
         }
       }
     } else {
       // mode not found, or we are just incrementing to the next mode
-      if (table.currentCupMode < table.cupModeList.size() -1) {
-        table.currentCupMode +=1;
+      if (currentCupMode < cupModeList.size() -1) {
+        currentCupMode +=1;
       } else {
-        table.currentCupMode = 0;
+        currentCupMode = 0;
       }
     }
     
-    println("currentCupMode:", table.currentCupMode, table.cupModeList.get(table.currentCupMode));
-    table.cupMode = new CupTransparent();
-    switch(table.currentCupMode) {
+    println("currentCupMode:", currentCupMode, cupModeList.get(currentCupMode));
+    cupMode = new CupTransparent();
+    switch(currentCupMode) {
       case 0: // No cup rendering
-        table.cupMode = new CupTransparent();
+        cupMode = new CupTransparent();
         break;
       case 1: // SOLIDCOLOUR
-        table.cupMode = new CupSolidColour(table);
+        cupMode = new CupSolidColour(this);
         break;
       case 2: // SOLIDCOLOUR TRANSPARENT
-        table.cupMode = new CupSolidColour(table, true, true);
+        cupMode = new CupSolidColour(this, true, true);
         break;
       default:
-        table.cupMode = new CupTransparent();
+        cupMode = new CupTransparent();
         break;
     }
   }

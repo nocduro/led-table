@@ -21,13 +21,11 @@ public interface Mode
 }
 
 class SolidColour implements Mode {
-  
   color c1;
   
   SolidColour(LEDTable t) {
     c1 = t.colours.get(0);
   }
-  
   // set the colour if a string of the colour is passed in
   // TODO: ADD ERROR CHECKING
   SolidColour(String c) {
@@ -364,4 +362,62 @@ class Particle {
       return true;
     } else { return false; }
   }
+}
+
+
+class Text implements Mode {
+  String message;
+  LEDTable table;
+  MatrixText text;
+  PGraphics pMessage;
+  PGraphics window, mask;
+    
+  
+  Text(LEDTable t, String s) {
+    table = t;
+    message = s;
+    
+    noTint();
+    blendMode(BLEND);
+    colorMode(RGB, 255);
+    
+    text = new MatrixText(2);
+    window = createGraphics(table.tableLength, table.tableWidth, P3D);
+    
+    // create a PGraphics to be used as a mask. Size of the window with
+    // black rectangles where we don't want text to show up
+    mask = createGraphics(table.tableLength, table.tableWidth, P3D);
+    mask.beginDraw();
+    mask.fill(0);
+    mask.rect(0, 0, 700/table.mmPerPixel, table.tableWidth);
+    mask.rect(table.tableLength - 700/table.mmPerPixel, 0, 700/table.mmPerPixel, table.tableWidth);
+    mask.endDraw();
+    
+    // create PGraphics that is just the message
+    pMessage = text.generatePGraphics(message);
+  }
+  
+  void update() {
+    background(0);
+    // on a PGraphics the size of the window, add in pMessage, then
+    // make it transparent past the edges of the main grid
+    window.beginDraw();
+    window.noStroke();
+    window.fill(255);
+    
+    window.image(pMessage, table.topLeftGridX - floor(16/mmPerPixel), table.topLeftGridY - floor(16/mmPerPixel));
+    
+    window.endDraw();
+    window.mask(mask);
+    
+  }
+  
+  void display() {
+    image(window, 0, 0);
+    fill(255, 0, 0);
+    rect(table.topLeftGridX, table.topLeftGridY, 5, 5);
+   }
+   
+   void setAttribute(String atr, int val) {
+   }
 }
