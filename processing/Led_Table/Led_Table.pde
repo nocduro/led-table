@@ -1,5 +1,4 @@
 import processing.net.*;
-import ddf.minim.analysis.*;
 import ddf.minim.*;
 import java.net.*;
 import java.util.Arrays;
@@ -15,7 +14,7 @@ final float mmPerPixel = 3; // scaling factor for Processing window size
 
 /** Network **/
 Server tcpServer; // used to send commands to the sketch remotely
-Client serialClient; // used for tcp connection to Arduino serial output
+Client serialClient; // used to connect to ser2net that hosts Arduino serial port
 OPC opc; // open pixel control
 
 
@@ -25,7 +24,6 @@ String statusMessage = "";
 
 /** Audio **/
 Minim minim;
-AudioInput sound; // microphone
 
 LEDTable table;
 MatrixText text;
@@ -44,19 +42,8 @@ void setup() {
   println("Frame rate set to: " + drawFrameRate);
   
   text = new MatrixText(table);
-  
-  /** AUDIO SETUP **/
   minim = new Minim(this);
-  // connect to lineIn
-  try {
-    // this must be mono to work on the Pi
-    // run: amixer set Mic Capture 16
-    // to get maximum Microphone gain on Pi
-    sound = minim.getLineIn(Minim.MONO, 2048, 48000.0, 16);
-  } catch(Exception e) {
-      statusMessage+= "Minim error: Unable to connect to LineIn";
-      println("Minim error: " + e.getMessage());
-  }
+  table.audio = new AudioReactor(minim);
   
   /** NETWORK SETUP **/
   // server that web app connects to
@@ -110,17 +97,19 @@ void setup() {
       statusMessage += "Unable to connect to OPC server"; 
   }
   
+  // get the x and y coordinates of the main grid
+  // used for drawing text to the grid
   table.topLeftGridY = floor(opc.pixelLocations[14] / width);
   table.topLeftGridX = opc.pixelLocations[14] - (table.topLeftGridY * width);
   
   // set the startup mode
-  table.changeMode("BUBBLES");
+  table.changeMode("SOUNDBALL");
   table.changeCupMode("SOLIDCOLOURTRANSPARENT");
   
   println("========= SETUP COMPLETE ========="); 
   println();
   
-  startAnimation();
+  startupAnimation();
   
 }
 
@@ -223,7 +212,9 @@ void receiveMessage(String message)
     try { shutdownPi(); } catch (Exception e) { println("Error shutting down Pi"); }
   } else if (command.equals("COLOUR") || command.equals("COLOR")) {
     table.changeColour(int(data[1].trim()), data[2].trim().toUpperCase());
-  }
+  } else if (command.equals("GAIN") ) {
+    table.audio.gain = float(data[1].trim());
+  } 
 
 } // end receive message
 
@@ -300,7 +291,7 @@ void shutdownPi() throws IOException {
 }
 
 
-void startAnimation() {
+void startupAnimation() {
   
   
   

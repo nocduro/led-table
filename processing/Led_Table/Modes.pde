@@ -37,8 +37,7 @@ class SolidColour implements Mode {
   }
   
   void update() {
-    // display secondary colour under cups
-    
+   
     
   }
   
@@ -52,8 +51,10 @@ class SolidColour implements Mode {
    }
 }
 
-// Draws a rainbow to the display
+
 class Rainbow implements Mode {
+  // Background colour of display smoothly transitions through 
+  // rgb colours
   int hueVal;
   int cycleTime = 20; // time in seconds to complete
   int maxVal;
@@ -61,8 +62,12 @@ class Rainbow implements Mode {
   Rainbow(LEDTable t) {
     hueVal = 0;
     maxVal = t.drawFrameRate * cycleTime;
-    println("LEDTable.drawFrameRate", t.drawFrameRate);
-    println("rainbow maxVal", maxVal);
+    //println("LEDTable.drawFrameRate", t.drawFrameRate);
+    //println("rainbow maxVal", maxVal);
+    
+    // change the colour mode so that each frame the colour
+    // slightly changes to make a complete transition in 
+    // cycleTime
     colorMode(HSB, maxVal);
   }
   
@@ -135,75 +140,39 @@ class RotatingCube implements Mode
 }
 
 
-class SoundBall implements Mode {
-  AudioInput mic;
-  FFT fft;
-  BeatDetect beat;
+class SoundBall implements Mode {  
+  AudioReactor audio;
   LEDTable table;
-  
-  float alpha,a;
-  int numBars;
-  float[] prevBars, currentBars;
-  int barMultiplier; // changes the size of the 'ball'
-  
-  // constructor for audioInput
-  SoundBall(LEDTable t, AudioInput s) {
+    
+  SoundBall(LEDTable t, AudioReactor a) {
+    audio = a;
     table = t;
-    mic = s;
-    fft = new FFT(mic.bufferSize(), mic.sampleRate());
-    beat = new BeatDetect();
-    alpha = 180;
-    numBars = 3;
-    prevBars = new float[this.numBars];
-    currentBars = new float[this.numBars];    
-    barMultiplier = 50;
-    colorMode(RGB, 255);
   }
   
   void update() {
-    fft.linAverages(numBars);
-    fft.forward(mic.left);
-    beat.detect(mic.left);
-    
-    for (int i = 0; i < numBars; i++) {
-      float val = fft.getAvg(i) * barMultiplier * (i*i+1); 
-      if (val > prevBars[i] ) {
-        currentBars[i] = prevBars[i] + ( (val- prevBars[i]) * 0.08 ); // fade up to new value
-      } else {
-        currentBars[i] = prevBars[i] * 0.95;  // fade down to old value
-      }
-      this.prevBars[i] = currentBars[i];
-      
-    }
-    
-    
-    a = map(alpha, 25, 150, 180, 255); 
-    if ( beat.isOnset() ) alpha = 150; 
-    
-    alpha *= 0.97;
-    if ( alpha < 25 ) alpha = 25;
-    
+    audio.update();
   }
    
-  
-  
   void display() {
     background(0);
     blendMode(BLEND);
     colorMode(RGB, 255);
-    fill(255, 66, 00, a);
-    ellipse(width/2, height/2, currentBars[2]+currentBars[0]+currentBars[1], currentBars[2] + currentBars[0] + currentBars[1]);
+    int s;
     
-    fill(255);
-    ellipse(width/2, height/2, currentBars[0]+currentBars[1], currentBars[0]+currentBars[1]);
-    fill(90, 0, 120, a);
-    ellipse(width/2, height/2, currentBars[1]+currentBars[0], currentBars[1]+currentBars[0]);
+    // outer circle
+    s = ceil((audio.data[0] + audio.data[5] + audio.data[8]) * 250);
+    fill(255, 66, 00);
+    ellipse(width/2, height/2, s, s);
     
-    fill(255);
-    ellipse(width/2, height/2, currentBars[0], currentBars[0]);
-    fill(60, 255, 0, a);
-    ellipse(width/2, height/2, currentBars[0], currentBars[0]);
+    // mid circle
+    s = ceil((audio.data[0] + audio.data[5]) * 250);
+    fill(90, 0, 120);
+    ellipse(width/2, height/2, s, s);
     
+    // inner circle
+    s = ceil( audio.data[0] * 200 );
+    fill(60, 255, 0);
+    ellipse(width/2, height/2, s, s);
   }
    
 

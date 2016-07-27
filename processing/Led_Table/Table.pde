@@ -17,6 +17,8 @@ public class LEDTable
   StringList cupModeList;
   int currentCupMode = 1;
   
+  AudioReactor audio;
+  
   // set the colour
   IntList colours = new IntList();
   
@@ -28,6 +30,7 @@ public class LEDTable
     this.mmPerPixel = mmPerPixel;
     this.brightness = 100;
     this.scoreEnabled = false;
+
     // clear the irData array
     for (int i = 0; i < 20; i++) {
       irData[i] = false;
@@ -189,14 +192,15 @@ public class LEDTable
         mode = new RotatingCube(this);
         break;
       case 4:
-        mode = new SoundBall(this, sound);
+        //mode = new SoundBall(this, sound);
+        mode = new SoundBall(this, audio);
         break;
       case 5:
         // Bubbles(count, size, lifespan);
         mode = new Bubbles(this, 30, 85, 100);
         break;
       case 6:
-        mode = new Bubbles(this, 30,85,100, table.colours.get(0));
+        mode = new Bubbles(this, 30,85,100, this.colours.get(0));
         break;
       case 7: // 'stars' using bubbles
         mode = new Bubbles(this, 30, 15, 100);
