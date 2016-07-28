@@ -296,3 +296,16 @@ void startupAnimation() {
   
   
 }
+
+
+
+
+public class DisposeHandler { // LEDs off when exiting
+  DisposeHandler(PApplet pa) {
+    pa.registerMethod("dispose", this);
+  }
+  public void dispose() {
+    for(int i=0; i < opc.pixelLocations.length; i++) opc.setPixel(i, 0);
+    opc.writePixels();
+  }
+}
