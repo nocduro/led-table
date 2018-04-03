@@ -1,4 +1,6 @@
 # LED Beer Pong Table
+Note: this project has been abandoned. Some of it may be useful, but some of the instructions (like the running a Processing sketch headless) probably no longer work.
+
 A beer pong table with a 15x30 grid of LEDs in the center, with LEDs and ir detectors under each cup. More information on hardware, and progress pictures on http://nocduro.ca/finished-projects
 
 ## Description
